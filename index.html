@@ -1,5 +1,33 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Sparkles } from "lucide-react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nirup Island — Digital Growth Strategy</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // Sparkles fallback (replaces lucide-react import)
+    function Sparkles({ size = 16, color = "#F2CC8F" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+          <path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" />
+        </svg>
+      );
+    }
+
+
+
 
 /* ═══════════════════════════════════════════════════
    DESIGN TOKENS
@@ -836,47 +864,24 @@ function RiahiStrategy() {
 }
 
 /* ═══════════════════════════════════════════════════
-   11b. CROSS-PLATFORM FLYWHEEL (from flywheel.jsx)
+   11b. CROSS-PLATFORM FLYWHEEL
    ═══════════════════════════════════════════════════ */
 function Flywheel() {
-  const [hovered, setHovered] = useState(null);
-  const [selectedChannel, setSelectedChannel] = useState(null);
-  const containerRef = useRef(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    function measure() {
-      if (containerRef.current) {
-        const w = containerRef.current.offsetWidth;
-        setScale(Math.min(w / 1280, 1));
-      }
-    }
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  const CHANNELS = [
-    { name: "TikTok", role: "Discovery & Virality", action: "Spark Interest", icon: "♪", color: "#3C2A0A", angle: 225, labelDx: 0, labelDy: -60, tipDx: 105, tipDy: -25, detail: "Short-form island content creates desire. Viewers who engage become warm prospects funnelled to the site.", tactics: ["Island reels & POVs", "Creator partnerships", "Hashtag challenges", "Behind-the-scenes"] },
-    { name: "Google", role: "Intent & Capture", action: "Capture Demand", icon: "⌕", color: "#9C6B30", angle: 315, labelDx: 0, labelDy: -60, tipDx: 105, tipDy: -25, detail: "Search ads + SEO intercept people actively looking for island escapes, weekend getaways, and villa stays.", tactics: ["Branded search protection", "Non-branded intent terms", "SEO content clusters", "Local / Maps"] },
-    { name: "Meta", role: "Retargeting & Nurture", action: "Convert Visitor", icon: "◎", color: "#7A6840", angle: 135, labelDx: 0, labelDy: 60, tipDx: 105, tipDy: 25, detail: "Retarget site visitors and lookalikes. Push warm audiences back to sign up or click through to book.", tactics: ["Site visitor retargeting", "Email lookalikes", "Carousel experiences", "Lead gen forms"] },
-    { name: "Email / CRM", role: "Relationship & Revenue", action: "Nurture & Convert", icon: "✉", color: "#D4A017", angle: 45, labelDx: 0, labelDy: 60, tipDx: 105, tipDy: 25, detail: "The compounding asset. Subscribers receive ongoing value, seasonal offers, and booking nudges over time.", tactics: ["Welcome sequence", "Seasonal campaigns", "Trigger-based flows", "Segmented offers"] },
+  const [activeCh, setActiveCh] = useState(null);
+  const channels = [
+    { id: "tiktok", label: "TikTok", role: "Discovery & Virality", icon: "♪", angle: 225, desc: "Spark awareness with short-form video. 45-min ferry hook, island lifestyle, guest UGC. Feeds branded search.", color: "#D4A853" },
+    { id: "google", label: "Google", role: "Intent & Capture", icon: "⌕", angle: 315, desc: "Capture high-intent searches. Brand protection, destination queries, segment keywords. Highest conversion rate.", color: "#8DB4D8" },
+    { id: "email", label: "Email / CRM", role: "Relationship & Revenue", icon: "✉", angle: 45, desc: "Nurture subscribers toward booking. Welcome sequences, seasonal offers, hold reminders, re-engagement.", color: "#C4917B" },
+    { id: "meta", label: "Meta", role: "Retargeting & Nurture", icon: "◎", angle: 135, desc: "Retarget site visitors + capture emails via lead forms. Lookalike audiences from subscriber list.", color: "#B8A9D4" },
   ];
-  const JOURNEY_STAGES = [
-    { label: "Discover", channel: "TikTok · Social · Google", desc: "Ads, search, social content spark awareness", color: "#D4A017" },
-    { label: "Explore", channel: "Site / Infohub", desc: "Browse destination content, galleries, experiences", color: "#4A8B5C" },
-    { label: "Engage", channel: "Signup ⭐", desc: "Email capture — lead magnets, exclusive access", color: "#D4A017", highlight: true },
-    { label: "Decide", channel: "Nurture", desc: "Email sequences & retargeting build intent", color: "#C4863A" },
-    { label: "Book", channel: "Riahi · Westin → Marriott", desc: "Qualified referral to booking platforms", color: "#9C6B30" },
-    { label: "Advocate", channel: "Share · Review · Return", desc: "Post-stay guests become ambassadors", color: "#7A6840" },
+  const STAGES = [
+    { label: "Discover", sub: "TikTok · Social · Google", desc: "Ads, search, social content spark awareness", color: "#D4A853" },
+    { label: "Explore", sub: "Site / Infohub", desc: "Browse destination content, galleries, experiences", color: "#7CBDAB" },
+    { label: "Engage", sub: "Signup ⭐", desc: "Email capture — lead magnets, exclusive access", color: "#E8B931" },
+    { label: "Decide", sub: "Nurture", desc: "Email sequences & retargeting build intent", color: "#C4917B" },
+    { label: "Book", sub: "Riahi · Westin → Marriott", desc: "Qualified referral to booking platforms", color: "#8DB4D8" },
+    { label: "Advocate", sub: "Share · Review · Return", desc: "Post-stay guests become ambassadors", color: "#B8A9D4" },
   ];
-
-  const W = 1280, H = 720, diagramW = 660, centerX = 310, centerY = 258, orbitRadius = 185, nodeSize = 88, hubSize = 164;
-  const active = selectedChannel;
-  const getPos = (deg) => {
-    const r = (deg * Math.PI) / 180;
-    return { x: centerX + orbitRadius * Math.cos(r), y: centerY + orbitRadius * Math.sin(r) };
-  };
 
   return (
     <Section id="flywheel" bg="#FAF6F0">
@@ -885,194 +890,116 @@ function Flywheel() {
         <Title>The Cross-Platform Flywheel</Title>
         <Sub>Every paid channel feeds the site. The site captures emails. Email compounds into bookings.</Sub>
       </FadeIn>
-      <FadeIn delay={100}>
-        <div ref={containerRef} style={{ width: "100%", overflow: "hidden" }}>
-          <div style={{
-            width: W, height: H - 70,
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-            marginBottom: `${(H - 70) * (scale - 1)}px`,
-            fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif",
-            color: "#3C2A0A",
-            position: "relative",
-            display: "flex",
-            gap: 0,
-          }}>
-            {/* Left: Diagram */}
-            <div style={{ position: "relative", width: diagramW, height: H - 70, flexShrink: 0 }}>
-              <svg width={diagramW} height={H - 70} viewBox={`0 0 ${diagramW} ${H - 70}`} style={{ position: "absolute", top: 0, left: 0 }}>
-                {/* Orbit ring */}
-                <circle cx={centerX} cy={centerY} r={orbitRadius} fill="none" stroke="#D4C8A8" strokeWidth="1.5" strokeDasharray="8 5" opacity="0.6" />
-                {/* Directional arcs */}
-                {[0, 90, 180, 270].map((sa, i) => {
-                  const a1 = ((sa + 12) * Math.PI) / 180;
-                  const a2 = ((sa + 58) * Math.PI) / 180;
-                  const r = orbitRadius;
-                  const tx = centerX + r * Math.cos(a2), ty = centerY + r * Math.sin(a2);
-                  const tr = ((sa + 58 + 90) * Math.PI) / 180, s = 8;
-                  return (
-                    <g key={i} opacity="0.28">
-                      <path d={`M ${centerX + r * Math.cos(a1)} ${centerY + r * Math.sin(a1)} A ${r} ${r} 0 0 1 ${tx} ${ty}`} fill="none" stroke="#D4A017" strokeWidth="2.5" />
-                      <polygon points={`${tx},${ty} ${tx - s * Math.cos(tr) - s * 0.5 * Math.sin(tr)},${ty - s * Math.sin(tr) + s * 0.5 * Math.cos(tr)} ${tx - s * Math.cos(tr) + s * 0.5 * Math.sin(tr)},${ty - s * Math.sin(tr) - s * 0.5 * Math.cos(tr)}`} fill="#D4A017" />
-                    </g>
-                  );
-                })}
-                {/* Connection lines */}
-                {CHANNELS.map((ch, i) => {
-                  const pos = getPos(ch.angle);
-                  const isA = active === i || hovered === i;
-                  return <line key={`l-${i}`} x1={pos.x} y1={pos.y} x2={centerX} y2={centerY} stroke={isA ? ch.color : "#D4C8A8"} strokeWidth={isA ? 3 : 1.2} strokeDasharray={isA ? "none" : "5 4"} opacity={isA ? 0.65 : 0.25} />;
-                })}
-                {/* Active channel tip labels */}
-                {CHANNELS.map((ch, i) => {
-                  const pos = getPos(ch.angle);
-                  const isA = active === i || hovered === i;
-                  if (!isA) return null;
-                  const tipX = pos.x + ch.tipDx, tipY = pos.y + ch.tipDy;
-                  return (
-                    <g key={`tip-${i}`}>
-                      <line x1={pos.x} y1={pos.y} x2={tipX} y2={tipY} stroke={ch.color} strokeWidth={1.2} opacity={0.45} />
-                      <circle cx={pos.x} cy={pos.y} r={2.5} fill={ch.color} opacity={0.45} />
-                      <rect x={tipX - 70} y={tipY - 14} width={140} height={28} rx={4} fill="#FAF6F0" stroke={ch.color} strokeWidth={1.5} />
-                      <text x={tipX} y={tipY + 5} textAnchor="middle" fontSize="13" fontFamily="inherit" fill={ch.color} fontWeight="600">{ch.action}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* Center hub */}
-              <div style={{
-                position: "absolute", left: centerX - hubSize / 2, top: centerY - hubSize / 2,
-                width: hubSize, height: hubSize, borderRadius: "50%",
-                background: "linear-gradient(135deg, #3C2A0A 0%, #5A3F14 100%)",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 8px 32px rgba(60,42,10,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
-                zIndex: 10, border: "3.5px solid #D4A017",
-              }}>
-                <div style={{ fontSize: 13, color: "#D4A017", fontWeight: 700, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 3 }}>The Site</div>
-                <div style={{ fontSize: 28, marginBottom: 3, color: "#C4A86C" }}>⊕</div>
-                <div style={{ fontSize: 11, color: "#C4A86C", textAlign: "center", lineHeight: 1.4, padding: "0 12px" }}>
-                  The hub to collect<br />
-                  <span style={{ color: "#D4A017", fontWeight: 700, fontSize: 12 }}>email: our primary asset</span>
-                </div>
-              </div>
-
+      <div style={{ display: "flex", gap: "clamp(24px,4vw,48px)", flexWrap: "wrap", alignItems: "flex-start" }}>
+        {/* Left: flywheel diagram */}
+        <FadeIn delay={100}>
+          <div style={{ flex: "1 1 340px", minWidth: 280, maxWidth: 520 }}>
+            <svg viewBox="0 0 480 480" style={{ width: "100%" }}>
+              <defs>
+                <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#4A3B20" /><stop offset="100%" stopColor="#3C2A0A" /></radialGradient>
+                <filter id="hubShadow"><feGaussianBlur stdDeviation="6" result="b" /><feFlood floodColor="rgba(60,42,10,0.2)" /><feComposite in2="b" operator="in" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+              </defs>
+              {/* Orbit ring */}
+              <circle cx="240" cy="240" r="155" fill="none" stroke="#B8A07040" strokeWidth="1" strokeDasharray="6 4" />
+              {/* Animated orbit dot */}
+              <circle r="3" fill="#D4A853" opacity="0.5">
+                <animateMotion dur="8s" repeatCount="indefinite" path="M 240,85 A 155,155 0 1,1 239.9,85" />
+              </circle>
+              {/* Connection lines from channels to hub */}
+              {channels.map((ch, i) => {
+                const rad = (ch.angle * Math.PI) / 180;
+                const cx = 240 + Math.cos(rad) * 155;
+                const cy = 240 + Math.sin(rad) * 155;
+                return (
+                  <line key={ch.id} x1="240" y1="240" x2={cx} y2={cy}
+                    stroke={activeCh === ch.id ? ch.color : "#B8A07030"}
+                    strokeWidth={activeCh === ch.id ? "2" : "1"}
+                    strokeDasharray="4 3" style={{ transition: "all 0.3s" }} />
+                );
+              })}
+              {/* Hub */}
+              <circle cx="240" cy="240" r="68" fill="url(#hubGrad)" filter="url(#hubShadow)" />
+              <circle cx="240" cy="240" r="68" fill="none" stroke="#B8A07050" strokeWidth="1.5" />
+              <text x="240" y="225" textAnchor="middle" fontSize="11" fontWeight="600" letterSpacing="2" fill="#D4A853" style={{ textTransform: "uppercase" }}>THE SITE</text>
+              <circle cx="240" cy="244" r="12" fill="none" stroke="#D4A85380" strokeWidth="1.2" />
+              <line x1="240" y1="238" x2="240" y2="250" stroke="#D4A85380" strokeWidth="1" />
+              <line x1="234" y1="244" x2="246" y2="244" stroke="#D4A85380" strokeWidth="1" />
+              <text x="240" y="275" textAnchor="middle" fontSize="9" fill="#B8A070" style={{ fontStyle: "italic" }}>The hub to collect</text>
+              <text x="240" y="287" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#D4A853">email: our primary asset.</text>
               {/* Channel nodes */}
-              {CHANNELS.map((ch, i) => {
-                const pos = getPos(ch.angle);
-                const isA = active === i, isH = hovered === i;
-                const sz = isA ? nodeSize + 6 : nodeSize;
+              {channels.map((ch) => {
+                const rad = (ch.angle * Math.PI) / 180;
+                const cx = 240 + Math.cos(rad) * 155;
+                const cy = 240 + Math.sin(rad) * 155;
+                const isActive = activeCh === ch.id;
+                const labelX = cx + Math.cos(rad) * 58;
+                const labelY = cy + Math.sin(rad) * 38;
+                const roleY = cy + Math.sin(rad) * (ch.angle > 180 ? -52 : 52);
+                const roleX = cx + Math.cos(rad) * (ch.angle > 90 && ch.angle < 270 ? -10 : 10);
                 return (
-                  <div key={ch.name}
-                    onClick={() => setSelectedChannel(active === i ? null : i)}
-                    onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
-                    style={{
-                      position: "absolute", left: pos.x - sz / 2, top: pos.y - sz / 2,
-                      width: sz, height: sz, borderRadius: "50%",
-                      backgroundColor: isA ? ch.color : "#FAF6F0",
-                      border: `3px solid ${ch.color}`,
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                      cursor: "pointer", zIndex: 20, transition: "all 0.25s ease",
-                      transform: isH && !isA ? "scale(1.06)" : "scale(1)",
-                      boxShadow: isA ? "0 6px 20px rgba(60,42,10,0.3)" : isH ? "0 3px 12px rgba(60,42,10,0.15)" : "0 2px 6px rgba(60,42,10,0.08)",
-                    }}>
-                    <span style={{ fontSize: 24, color: isA ? "#FAF6F0" : ch.color }}>{ch.icon}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: isA ? "#FAF6F0" : ch.color, marginTop: 2, textAlign: "center", lineHeight: 1.15, maxWidth: sz - 14 }}>{ch.name}</span>
-                  </div>
+                  <g key={ch.id} style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setActiveCh(ch.id)} onMouseLeave={() => setActiveCh(null)}>
+                    <circle cx={cx} cy={cy} r={isActive ? 40 : 34} fill={isActive ? "#FAF0E0" : "#F5EDE0"} stroke={isActive ? ch.color : "#C8B89060"} strokeWidth={isActive ? 2 : 1.2} style={{ transition: "all 0.25s" }} />
+                    <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fontSize="20" fill={isActive ? ch.color : "#6B5D4F"} style={{ transition: "fill 0.2s" }}>{ch.icon}</text>
+                    <text x={cx} y={cy + 24} textAnchor="middle" fontSize="12" fontWeight="600" fill={isActive ? ch.color : "#4A3B20"} style={{ transition: "fill 0.2s" }}>{ch.label}</text>
+                    {/* Role label */}
+                    <text x={ch.angle === 225 ? cx - 20 : ch.angle === 315 ? cx + 20 : ch.angle === 135 ? cx - 20 : cx + 20}
+                      y={ch.angle === 225 || ch.angle === 315 ? cy - 46 : cy + 50}
+                      textAnchor={ch.angle === 225 || ch.angle === 135 ? "end" : "start"}
+                      fontSize="10" fontStyle="italic" fill={isActive ? ch.color : "#9A8B7A"} style={{ transition: "fill 0.2s" }}>{ch.role}</text>
+                  </g>
                 );
               })}
-
-              {/* Role labels */}
-              {CHANNELS.map((ch, i) => {
-                const pos = getPos(ch.angle);
-                const isA = active === i || hovered === i;
-                return (
-                  <div key={`rl-${i}`} style={{
-                    position: "absolute", left: pos.x + ch.labelDx - 80, top: pos.y + ch.labelDy - 10,
-                    width: 160, textAlign: "center", fontSize: 14,
-                    color: isA ? ch.color : "#9C6B30", fontStyle: "italic",
-                    fontWeight: isA ? 600 : 400, transition: "all 0.2s",
-                    pointerEvents: "none", lineHeight: 1.35,
-                  }}>{ch.role}</div>
-                );
-              })}
-
-              {/* Bottom annotation */}
-              <div style={{ position: "absolute", bottom: 6, left: 20, right: 20, textAlign: "center", fontSize: 14, color: "#9C6B30", fontStyle: "italic", lineHeight: 1.5 }}>
-                "Exclusions are as important as targeting."<br />
-                <span style={{ fontSize: 13, color: "#B4A880" }}>Don't show signup ads to people who've already signed up.</span>
-              </div>
-            </div>
-
-            {/* Right panel */}
-            <div style={{ flex: 1, minWidth: 320, padding: "0 0 0 28px", borderLeft: "1.5px solid #E8DCC8", overflow: "hidden" }}>
-              {active !== null ? (() => {
-                const ch = CHANNELS[active];
-                return (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: ch.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#FAF6F0" }}>{ch.icon}</div>
-                      <div>
-                        <div style={{ fontSize: 20, fontWeight: 700 }}>{ch.name}</div>
-                        <div style={{ fontSize: 14, color: "#9C6B30", fontStyle: "italic" }}>{ch.role}</div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: 15, lineHeight: 1.55, color: "#5A4520", margin: "0 0 16px", borderLeft: `3.5px solid ${ch.color}`, paddingLeft: 12 }}>{ch.detail}</p>
-                    <div style={{ backgroundColor: "#F5EFE4", borderRadius: 10, padding: "12px 16px" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#9C6B30", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: 8 }}>Key Tactics</div>
-                      {ch.tactics.map((t, ti) => (
-                        <div key={ti} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", borderBottom: ti < ch.tactics.length - 1 ? "1px solid rgba(212,168,23,0.15)" : "none" }}>
-                          <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: ch.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: 14, color: "#3C2A0A" }}>{t}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, border: "1.5px dashed #D4A017", backgroundColor: "rgba(212,160,23,0.04)" }}>
-                      <div style={{ fontSize: 12, color: "#9C6B30", fontWeight: 600, marginBottom: 4 }}>FLOW</div>
-                      <div style={{ fontSize: 14, color: "#3C2A0A", lineHeight: 1.5 }}>
-                        {active === 0 && "TikTok → Site visit → Email signup → Retarget via Meta → Book"}
-                        {active === 1 && "Google search → Site visit → Email signup or Book → Retarget non-converters"}
-                        {active === 2 && "Meta retarget → Return visit → Email signup → Nurture → Book"}
-                        {active === 3 && "Email received → Site visit → Booking referral → Revenue"}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })() : (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: "#9C6B30", textTransform: "uppercase", letterSpacing: "2px", marginBottom: 1 }}>NIRUP ISLAND</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#3C2A0A", marginBottom: 1 }}>User Journey</div>
-                  <div style={{ fontSize: 14, color: "#D4A017", fontStyle: "italic", marginBottom: 14 }}>The 'Dream to Share' Loop</div>
-                  {JOURNEY_STAGES.map((stage, si) => (
-                    <div key={si} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 14 }}>
-                        <div style={{ width: 9, height: 9, borderRadius: "50%", backgroundColor: stage.color, marginTop: 5, flexShrink: 0 }} />
-                        {si < JOURNEY_STAGES.length - 1 && <div style={{ width: 1.5, flexGrow: 1, minHeight: 28, backgroundColor: "#D4C8A8", marginTop: 1 }} />}
-                      </div>
-                      <div style={{ paddingBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 16, fontWeight: 700, color: "#3C2A0A" }}>{stage.label}</span>
-                          <span style={{ fontSize: 11, color: "#9C6B30", fontStyle: "italic" }}>{stage.channel}</span>
-                          {stage.highlight && <span style={{ fontSize: 12, color: "#D4A017" }}>★</span>}
-                        </div>
-                        <div style={{ fontSize: 13, color: "#7A6840", lineHeight: 1.45, marginTop: 1 }}>{stage.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: 10, padding: "10px 14px", backgroundColor: "#F5EFE4", borderRadius: 8, borderLeft: "3.5px solid #D4A017" }}>
-                    <div style={{ fontSize: 13, color: "#3C2A0A", lineHeight: 1.55 }}>
-                      Our ads influence <span style={{ fontWeight: 700 }}>Discover → Decide</span><br />
-                      We track success at <span style={{ fontWeight: 700 }}>Explore → Engage</span><br />
-                      <span style={{ color: "#9C6B30", fontStyle: "italic" }}>The booking happens differently.</span>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 10, fontSize: 13, color: "#9C6B30", textAlign: "center", fontStyle: "italic" }}>← Click any channel to explore</div>
+            </svg>
+            {/* Channel detail on hover */}
+            <div style={{ minHeight: 40, padding: "8px 14px", background: activeCh ? "rgba(60,42,10,0.04)" : "transparent", borderRadius: 8, border: activeCh ? "1px solid rgba(60,42,10,0.08)" : "1px solid transparent", transition: "all 0.25s", marginTop: -8 }}>
+              {activeCh ? (
+                <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#4A3B20", lineHeight: 1.55 }}>
+                  <strong style={{ color: channels.find(c=>c.id===activeCh)?.color }}>{channels.find(c=>c.id===activeCh)?.label}:</strong>{" "}
+                  {channels.find(c=>c.id===activeCh)?.desc}
                 </div>
+              ) : (
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", textAlign: "center", fontStyle: "italic" }}>← Click any channel to explore</div>
               )}
             </div>
+            {/* Bottom quote */}
+            <div style={{ marginTop: 14, borderTop: "1px solid rgba(60,42,10,0.08)", paddingTop: 10 }}>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", color: "#4A3B20", fontStyle: "italic", fontFamily: "'Playfair Display', serif" }}>"Exclusions are as important as targeting."</div>
+              <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", marginTop: 2, fontStyle: "italic" }}>Don't show signup ads to people who've already signed up.</div>
+            </div>
           </div>
-        </div>
-      </FadeIn>
+        </FadeIn>
+
+        {/* Right: user journey stages */}
+        <FadeIn delay={200}>
+          <div style={{ flex: "1 1 280px", minWidth: 240, maxWidth: 420 }}>
+            <div style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, letterSpacing: 2, color: "#9A8B7A", textTransform: "uppercase", marginBottom: 4 }}>Nirup Island</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px,2.8vw,28px)", fontWeight: 700, color: "#2C1810", marginBottom: 3 }}>User Journey</div>
+            <div style={{ fontSize: "clamp(11px,1.2vw,14px)", color: "#B8860B", fontStyle: "italic", marginBottom: 18 }}>The 'Dream to Share' Loop</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {STAGES.map((s, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0, marginTop: 4 }} />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "clamp(13px,1.4vw,16px)", fontWeight: 700, color: "#2C1810" }}>{s.label}</span>
+                      <span style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", fontStyle: "italic" }}>{s.sub}</span>
+                    </div>
+                    <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#7A6B5D", lineHeight: 1.45, marginTop: 1 }}>{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 18, padding: "10px 14px", background: "rgba(184,134,11,0.06)", borderRadius: 8, border: "1px solid rgba(184,134,11,0.12)" }}>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#4A3B20", lineHeight: 1.55 }}>
+                Our ads influence <strong style={{ color: "#B8860B" }}>Discover → Decide</strong><br />
+                We track success at <strong style={{ color: "#B8860B" }}>Explore → Engage</strong><br />
+                <span style={{ color: "#9A8B7A", fontStyle: "italic" }}>The booking happens differently.</span>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
     </Section>
   );
 }
@@ -1332,7 +1259,7 @@ function NextSteps() {
 /* ═══════════════════════════════════════════════════
    MAIN APP
    ═══════════════════════════════════════════════════ */
-export default function NirupStory() {
+function NirupStory() {
   const [active, setActive] = useState("hero");
 
   useEffect(() => {
@@ -1385,3 +1312,9 @@ export default function NirupStory() {
     </div>
   );
 }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<NirupStory />);
+  </script>
+</body>
+</html>
