@@ -1,4 +1,1320 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx={50} cy={50} r={40} fill="lightblue" />
-  <text x={50} y={55} font-size="20" text-anchor="middle" fill="black">Island Journey</text>
-</svg>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nirup Island — Digital Growth Strategy</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // Sparkles fallback (replaces lucide-react import)
+    function Sparkles({ size = 16, color = "#F2CC8F" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+          <path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" />
+        </svg>
+      );
+    }
+
+
+
+
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════ */
+const C = {
+  midnight: "#0B1D33", deep: "#0F2847", ocean: "#14365E",
+  teal: "#0E7C86", seafoam: "#2EC4B6", coral: "#E07A5F",
+  gold: "#F2CC8F", sand: "#F8F0E3", pearl: "#FAFAF8",
+  white: "#FFFFFF", muted: "#8B9DB5", darkText: "#1A2A3F",
+};
+
+/* ═══════════════════════════════════════════════════
+   UTILITY COMPONENTS
+   ═══════════════════════════════════════════════════ */
+function FadeIn({ children, delay = 0, className = "" }) {
+  const [v, setV] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold: 0.08 });
+    if (ref.current) o.observe(ref.current);
+    return () => o.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className} style={{ opacity: v ? 1 : 0, transform: v ? "translateY(0)" : "translateY(20px)", transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+function Section({ id, bg = C.pearl, children, style = {} }) {
+  return (
+    <section id={id} style={{ background: bg, padding: "clamp(40px,7vw,72px) clamp(16px,4vw,32px)", position: "relative", overflow: "hidden", ...style }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 2 }}>{children}</div>
+    </section>
+  );
+}
+
+function Tag({ children }) {
+  return <div style={{ display: "inline-block", background: `linear-gradient(135deg, ${C.teal}, ${C.seafoam})`, color: C.white, padding: "5px 14px", borderRadius: 20, fontSize: "clamp(9px,1.2vw,11px)", fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 14 }}>{children}</div>;
+}
+
+function Title({ children, light = false }) {
+  return <h2 style={{ fontFamily: "'Playfair Display', 'Georgia', serif", fontSize: "clamp(24px,4vw,42px)", fontWeight: 700, color: light ? C.white : C.midnight, lineHeight: 1.15, marginBottom: 14, maxWidth: 720 }}>{children}</h2>;
+}
+
+function Sub({ children, light = false }) {
+  return <p style={{ fontSize: "clamp(13px,1.4vw,17px)", color: light ? "rgba(255,255,255,0.65)" : C.muted, lineHeight: 1.65, maxWidth: 620, marginBottom: 28 }}>{children}</p>;
+}
+
+/* ═══════════════════════════════════════════════════
+   NAV (clickable, sticky, active-section tracking)
+   ═══════════════════════════════════════════════════ */
+const NAV = [
+  { id: "hero", label: "Intro" }, { id: "exec", label: "Summary" },
+  { id: "why-now", label: "Why Now" }, { id: "model", label: "Model" },
+  { id: "journey", label: "Journey" }, { id: "micro-j", label: "Journeys" },
+  { id: "targets", label: "Targets" }, { id: "audiences", label: "Audiences" },
+  { id: "timing", label: "Timing" }, { id: "calendar", label: "Calendar" },
+  { id: "season", label: "Seasons" }, { id: "westin", label: "Westin" },
+  { id: "riahi", label: "Riahi" }, { id: "flywheel", label: "Flywheel" }, { id: "paid", label: "Paid" },
+  { id: "email", label: "Email" }, { id: "roadmap", label: "Roadmap" },
+  { id: "budget", label: "Budget" }, { id: "next", label: "Next" },
+];
+
+function Nav({ active }) {
+  const scrollTo = useCallback((id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  return (
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(11,29,51,0.92)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ maxWidth: 1300, margin: "0 auto", display: "flex", alignItems: "center", gap: 0, padding: "0 clamp(8px,1.5vw,16px)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}
+        className="nav-scroll">
+        <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: C.gold, fontSize: "clamp(11px,1.3vw,14px)", whiteSpace: "nowrap", marginRight: "clamp(6px,1vw,14px)", padding: "12px 0" }}>Nirup Island</span>
+        {NAV.map((it) => (
+          <button key={it.id} onClick={() => scrollTo(it.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "clamp(9px,1vw,11px)", fontWeight: 600, letterSpacing: 0.3, color: active === it.id ? C.seafoam : "rgba(255,255,255,0.4)", padding: "12px clamp(5px,0.7vw,10px)", whiteSpace: "nowrap", borderBottom: active === it.id ? `2px solid ${C.seafoam}` : "2px solid transparent", transition: "all 0.2s", fontFamily: "inherit" }}>{it.label}</button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   1. HERO
+   ═══════════════════════════════════════════════════ */
+function Hero() {
+  return (
+    <section id="hero" style={{ background: `linear-gradient(160deg, ${C.midnight} 0%, ${C.deep} 40%, ${C.ocean} 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "100px clamp(16px,4vw,32px) 60px", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "8%", right: "3%", width: "clamp(180px,30vw,420px)", height: "clamp(180px,30vw,420px)", borderRadius: "50%", background: `radial-gradient(circle, ${C.teal}12, transparent 70%)`, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "10%", left: "5%", width: "clamp(120px,20vw,280px)", height: "clamp(120px,20vw,280px)", borderRadius: "50%", background: `radial-gradient(circle, ${C.coral}08, transparent 70%)`, pointerEvents: "none" }} />
+      <div style={{ maxWidth: 900, textAlign: "center", position: "relative", zIndex: 2 }}>
+        <FadeIn><div style={{ display: "inline-block", border: `1px solid ${C.gold}40`, borderRadius: 30, padding: "7px 20px", marginBottom: 24 }}><span style={{ fontSize: "clamp(9px,1.1vw,12px)", fontWeight: 600, letterSpacing: 3, color: C.gold, textTransform: "uppercase" }}>Digital Growth Strategy · Feb 2026</span></div></FadeIn>
+        <FadeIn delay={150}><h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(34px,7vw,72px)", fontWeight: 700, color: C.white, lineHeight: 1.08, marginBottom: 18 }}>Nirup Island</h1></FadeIn>
+        <FadeIn delay={280}><p style={{ fontSize: "clamp(14px,1.8vw,21px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.6, maxWidth: 580, margin: "0 auto 36px" }}>Turning Interest into Assets: The Path to 3× Growth for The Westin Nirup Island Resort & Spa + Riahi Residences</p></FadeIn>
+        <FadeIn delay={400}>
+          <div style={{ display: "flex", gap: "clamp(16px,3vw,36px)", justifyContent: "center", flexWrap: "wrap" }}>
+            {[{ n: "3×", l: "Email Signups" }, { n: "20", l: "Campaigns" }, { n: "8", l: "Audiences" }, { n: "90", l: "Day Roadmap" }].map((s, i) => (
+              <div key={i} style={{ textAlign: "center", minWidth: 70 }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 700, color: C.seafoam }}>{s.n}</div>
+                <div style={{ fontSize: "clamp(8px,1vw,11px)", letterSpacing: 1.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", marginTop: 2 }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+        <FadeIn delay={550}><p style={{ fontSize: "clamp(10px,1vw,12px)", color: "rgba(255,255,255,0.25)", marginTop: 36 }}>Prepared for Yeni Ho, Marketing Director · Confidential</p></FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   2. EXECUTIVE SUMMARY
+   ═══════════════════════════════════════════════════ */
+function ExecSummary() {
+  const blocks = [
+    { title: "What's Broken", icon: "🚨", color: C.coral, items: [
+      "Email signup is broken — 'Subscribe for updates' with no value exchange converts at ~0.3%",
+      "Analytics compromised — 3 GTM containers triple-firing, double-tagged conversion pixel, 142 scripts slowing every page",
+      "AI search blocked — Cloudflare denies ChatGPT, Perplexity, and Google AI crawlers; the island is invisible to next-gen search",
+    ]},
+    { title: "Do in 30 Days", icon: "⚡", color: C.teal, items: [
+      "Create the Insider's Guide lead magnet and redesign all signup forms — the single highest-leverage change",
+      "Consolidate GTM, install Meta CAPI + TikTok pixel, launch GA4 dashboards — no ad spend until tracking works",
+      "Build Riahi's 48-hour hold system + group quote tool — these convert 5–10× better than a PDF download",
+    ]},
+    { title: "Expected Impact", icon: "📈", color: C.seafoam, items: [
+      "Email list: 50/mo → 150+ by Day 90 (3×), 500+/mo by Month 12 (10×)",
+      "Referral clicks to Marriott: 100/mo → 200+ (90-day), 400+ (12-month)",
+      "Riahi direct bookings: 3/mo → 6+ (90-day), 15+/mo (12-month) via hold + quote system",
+    ]},
+    { title: "Key Risks", icon: "⚠️", color: C.gold, items: [
+      "Attribution gap — cannot track Marriott conversion; accept proxy metrics, request partner data quarterly",
+      "Marriott overlap — must coordinate brand terms to avoid bidding war on Google Ads",
+      "Build before spend — Riahi tools (SGD 3.5–7K) and lead magnet must be live before any ad dollar flows",
+    ]},
+  ];
+  return (
+    <Section id="exec" bg={C.white}>
+      <FadeIn><Tag>Executive Summary</Tag><Title>The State of Play</Title><Sub>12 critical findings distilled into what's broken, what to do first, what to expect, and what could go wrong.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 14 }}>
+        {blocks.map((b, bi) => (
+          <FadeIn key={bi} delay={bi * 90}>
+            <div style={{ background: C.pearl, borderRadius: 14, padding: "clamp(16px,2vw,22px)", borderTop: `3px solid ${b.color}`, height: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 18 }}>{b.icon}</span>
+                <span style={{ fontSize: "clamp(12px,1.3vw,14px)", fontWeight: 700, color: b.color }}>{b.title}</span>
+              </div>
+              {b.items.map((it, ii) => (
+                <div key={ii} style={{ display: "flex", gap: 8, marginBottom: 9, fontSize: "clamp(11px,1.15vw,13px)", lineHeight: 1.55, color: C.darkText }}>
+                  <span style={{ color: b.color, fontWeight: 700, flexShrink: 0 }}>{ii + 1}.</span>
+                  <span>{it}</span>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   3. WHY NOW
+   ═══════════════════════════════════════════════════ */
+function WhyNow() {
+  const cards = [
+    { icon: "🏝️", stat: "45 min", title: "From Singapore", desc: "6M+ residents. One of Asia's wealthiest travel markets. Direct ferry." },
+    { icon: "✨", stat: "Brand New", title: "Opened June 2025", desc: "First full season ahead. Every guest is a first-time guest to convert." },
+    { icon: "🎯", stat: "Wide Open", title: "Competitors Asleep", desc: "Bintan & Batam barely advertise. The 'island near SG' niche is unclaimed." },
+    { icon: "⏳", stat: "Now", title: "The Window Closes", desc: "First mover wins positioning. OTAs fill the gap if we don't." },
+  ];
+  return (
+    <Section id="why-now" bg={C.pearl}>
+      <FadeIn><Tag>The Opportunity</Tag><Title>Why This Matters Now</Title><Sub>The closest private island resort to Singapore — and the digital space is ours to claim.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 210px), 1fr))", gap: 14 }}>
+        {cards.map((c, i) => (
+          <FadeIn key={i} delay={i * 80}>
+            <div style={{ background: C.white, borderRadius: 14, padding: "clamp(16px,2vw,26px)", border: `1px solid ${C.teal}12`, height: "100%", transition: "transform 0.3s, box-shadow 0.3s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${C.teal}10`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>{c.icon}</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(22px,3vw,30px)", fontWeight: 700, color: C.teal, marginBottom: 2 }}>{c.stat}</div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.midnight, marginBottom: 6 }}>{c.title}</div>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: C.muted, lineHeight: 1.6 }}>{c.desc}</div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   4. BUSINESS MODEL
+   ═══════════════════════════════════════════════════ */
+function BusinessModel() {
+  return (
+    <Section id="model" bg={`linear-gradient(160deg, ${C.midnight}, ${C.deep})`}>
+      <FadeIn><Tag>Business Model</Tag><Title light>Two Brands, Two Funnels, One Island</Title><Sub light>nirupisland.com serves both — but with fundamentally different conversion models.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 18 }}>
+        {[
+          { icon: "🏨", name: "The Westin", sub: "Marriott Franchise", color: C.teal, desc: "We inspire → refer. Visitors browse, sign up for email, get nurtured, then click through to Marriott to book.", tags: ["Email Signup", "Nurture", "Referral Click"], aov: "Standard hotel rate", lead: "1–6 weeks" },
+          { icon: "🏡", name: "Riahi Residences", sub: "Private Villas", color: C.coral, desc: "We own the full funnel. Visitors browse villas, hold dates, get quotes, and book directly on nirupisland.com.", tags: ["Hold Dates", "Get Quote", "Direct Booking"], aov: "3–10× hotel rate", lead: "4–12 weeks" },
+        ].map((b, i) => (
+          <FadeIn key={i} delay={i * 120}>
+            <div style={{ background: i === 0 ? "rgba(255,255,255,0.05)" : `${C.coral}06`, borderRadius: 16, padding: "clamp(20px,3vw,30px)", border: `1px solid ${i === 0 ? "rgba(255,255,255,0.08)" : C.coral + "25"}`, height: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: `linear-gradient(135deg, ${b.color}, ${b.color}cc)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{b.icon}</div>
+                <div><div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(16px,2vw,20px)", fontWeight: 700, color: C.white }}>{b.name}</div><div style={{ fontSize: "clamp(9px,0.9vw,10px)", letterSpacing: 1, color: b.color, textTransform: "uppercase" }}>{b.sub}</div></div>
+              </div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", color: "rgba(255,255,255,0.6)", lineHeight: 1.65, marginBottom: 14 }}>{b.desc}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
+                {b.tags.map(t => <span key={t} style={{ background: `${b.color}20`, color: b.color, fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 600, padding: "3px 10px", borderRadius: 14 }}>{t}</span>)}
+              </div>
+              <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 8, fontSize: "clamp(10px,1vw,11px)", color: "rgba(255,255,255,0.4)" }}>
+                <strong style={{ color: C.gold }}>AOV:</strong> {b.aov} · <strong style={{ color: C.gold }}>Lead:</strong> {b.lead}
+              </div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+      <FadeIn delay={280}>
+        <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 12 }}>
+          {[
+            { n: "01", t: "Inspire First, Convert Second", d: "Earn the right to ask for an email by delivering value first." },
+            { n: "02", t: "The Email List Is the Asset", d: "The only thing we truly own is the subscriber relationship." },
+            { n: "03", t: "Right Message, Right Moment", d: "Match the CTA to where the visitor is — never force 'Book Now' on dreamers." },
+          ].map(p => (
+            <div key={p.n} style={{ padding: "14px 0", borderTop: `2px solid ${C.gold}40` }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(18px,2.5vw,22px)", fontWeight: 700, color: C.gold, marginBottom: 5 }}>{p.n}</div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.white, marginBottom: 3 }}>{p.t}</div>
+              <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{p.d}</div>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   5. ISLAND JOURNEY (from island-journey_biggerfont.jsx)
+   ═══════════════════════════════════════════════════ */
+function IslandJourney() {
+  const STAGES = [
+    { id: "discover", label: "Discover", subtitle: "TikTok · Social · Google", desc: "Ads, search, social content spark awareness", icon: "🔍", color: "#D4A853", glow: "rgba(212,168,83,0.4)" },
+    { id: "explore", label: "Explore", subtitle: "Site / Infohub", desc: "Browse destination content, galleries, experiences", icon: "🧭", color: "#7CBDAB", glow: "rgba(124,189,171,0.4)" },
+    { id: "engage", label: "Engage", subtitle: "Signup ⭐", desc: "Email capture — lead magnets, exclusive access", icon: "✉️", color: "#E8B931", glow: "rgba(232,185,49,0.4)" },
+    { id: "decide", label: "Decide", subtitle: "Nurture", desc: "Email sequences & retargeting build intent", icon: "💭", color: "#C4917B", glow: "rgba(196,145,123,0.4)" },
+    { id: "book", label: "Book", subtitle: "Riahi · Westin → Marriott", desc: "Qualified referral to booking platforms", icon: "🏝️", color: "#8DB4D8", glow: "rgba(141,180,216,0.4)" },
+    { id: "advocate", label: "Advocate", subtitle: "Share · Review · Return", desc: "Post-stay guests become ambassadors", icon: "💬", color: "#B8A9D4", glow: "rgba(184,169,212,0.4)" },
+  ];
+  const NODES = [{ x: 445, y: 42 },{ x: 730, y: 150 },{ x: 748, y: 375 },{ x: 600, y: 575 },{ x: 335, y: 530 },{ x: 195, y: 270 }];
+  const LABELS = [{ anchor: "middle", dx: 0, dy: -42 },{ anchor: "start", dx: 36, dy: -10 },{ anchor: "start", dx: 36, dy: 0 },{ anchor: "middle", dx: 0, dy: 50 },{ anchor: "end", dx: -36, dy: 50 },{ anchor: "end", dx: -36, dy: 0 }];
+  const ISLAND = "M 340,95 C 360,88 400,78 440,75 C 480,70 520,72 555,80 C 590,90 620,100 648,115 C 672,128 690,142 705,160 C 722,182 732,200 738,222 L 740,235 C 742,250 740,262 735,275 C 728,295 715,308 700,318 L 688,330 C 675,338 668,345 665,355 C 660,370 662,385 668,398 C 675,412 682,425 685,440 C 688,460 686,478 678,495 C 668,515 652,530 632,542 C 610,555 585,562 558,565 C 530,570 500,568 475,562 C 448,555 425,545 405,532 C 382,518 362,505 342,488 C 320,468 302,450 288,430 C 270,405 258,382 248,358 C 235,328 228,300 225,272 C 220,240 218,210 222,182 C 228,152 238,128 255,110 C 275,90 305,88 340,95 Z";
+  const [active, setActive] = useState(null);
+  const [ready, setReady] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setReady(true); }, { threshold: 0.12 });
+    if (ref.current) o.observe(ref.current); return () => o.disconnect();
+  }, []);
+
+  function arrow(f, t, curve = 30) {
+    const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2, dx = t.x - f.x, dy = t.y - f.y;
+    const len = Math.sqrt(dx * dx + dy * dy), nx = -dy / len, ny = dx / len;
+    return `M ${f.x},${f.y} Q ${mx + nx * curve},${my + ny * curve} ${t.x},${t.y}`;
+  }
+  const paths = NODES.map((p, i) => arrow(p, NODES[(i + 1) % 6], i < 3 ? 50 : -50));
+
+  return (
+    <Section id="journey" bg="linear-gradient(155deg, #0a1628 0%, #0d2137 40%, #0f2a42 70%, #091a2e 100%)">
+      <FadeIn><Tag>User Journey</Tag><Title light>The Island Loop</Title><Sub light>Every guest follows the same 6-stage loop. Email signup (Engage) is the critical conversion we control.</Sub></FadeIn>
+      <div ref={ref} style={{ display: "flex", gap: "clamp(16px,3vw,32px)", flexWrap: "wrap", alignItems: "center" }}>
+        {/* Left: stage cards */}
+        <div style={{ flex: "1 1 280px", minWidth: 240, maxWidth: 380, display: "flex", flexDirection: "column", gap: 5, opacity: ready ? 1 : 0, transform: ready ? "translateX(0)" : "translateX(-16px)", transition: "all 0.7s ease 0.2s" }}>
+          {STAGES.map((s, i) => (
+            <div key={s.id} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 12px", borderRadius: 6, background: active === i ? "rgba(20,40,60,0.65)" : "rgba(15,28,45,0.3)", border: `1px solid ${active === i ? s.color + "70" : "rgba(60,80,100,0.08)"}`, cursor: "pointer", transition: "all 0.25s" }}>
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: s.color, flexShrink: 0, boxShadow: active === i ? `0 0 10px ${s.glow}` : "none" }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: "clamp(14px,1.5vw,17px)", fontWeight: 600, color: s.color, fontFamily: "'Playfair Display', serif" }}>{s.label}</span>
+                  <span style={{ fontSize: "clamp(10px,1vw,12px)", color: "rgba(180,195,210,0.35)" }}>{s.subtitle}</span>
+                </div>
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "rgba(180,195,210,0.45)", lineHeight: 1.4, marginTop: 1 }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: "rgba(15,28,45,0.3)", border: "1px solid rgba(60,80,100,0.08)", fontSize: "clamp(11px,1.1vw,12px)", color: "rgba(200,210,220,0.4)", lineHeight: 1.7 }}>
+            Our ads influence <span style={{ color: "rgba(212,168,83,0.7)" }}>Discover → Decide</span><br />
+            We track success at <span style={{ color: "rgba(124,189,171,0.7)" }}>Explore → Engage</span><br />
+            The booking happens differently.
+          </div>
+        </div>
+        {/* Right: island SVG */}
+        <div style={{ flex: "1 1 400px", minWidth: 280, opacity: ready ? 1 : 0, transform: ready ? "scale(1)" : "scale(0.95)", transition: "all 0.8s ease 0.15s" }}>
+          <svg viewBox="100 -20 760 660" style={{ width: "100%", maxHeight: 520 }}>
+            <defs>
+              <radialGradient id="wg" cx="52%" cy="48%" r="50%"><stop offset="0%" stopColor="rgba(20,90,140,0.1)" /><stop offset="100%" stopColor="transparent" /></radialGradient>
+              <linearGradient id="ig" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#1a3a2a" /><stop offset="40%" stopColor="#1f4a35" /><stop offset="100%" stopColor="#163028" /></linearGradient>
+              <filter id="igl" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="6" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" /></filter>
+              <filter id="og"><feGaussianBlur stdDeviation="10" result="b" /><feFlood floodColor="rgba(30,100,80,0.25)" /><feComposite in2="b" operator="in" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+              {STAGES.map((s, i) => <marker key={i} id={`a${i}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><path d="M 0,0 L 10,3.5 L 0,7 L 2.5,3.5 Z" fill={s.color} opacity="0.7" /></marker>)}
+            </defs>
+            <rect x="100" y="-20" width="760" height="660" fill="url(#wg)" />
+            {[260,300,340].map((r,i) => <ellipse key={i} cx="480" cy="310" rx={r} ry={r*0.68} fill="none" stroke="rgba(40,120,160,0.03)" strokeWidth="1" />)}
+            <path d={ISLAND} fill="rgba(0,20,30,0.35)" transform="translate(3,5)" filter="url(#og)" />
+            <path d={ISLAND} fill="url(#ig)" stroke="rgba(60,140,100,0.25)" strokeWidth="1.5" filter="url(#igl)" />
+            <path d={ISLAND} fill="none" stroke="rgba(80,160,100,0.05)" strokeWidth="18" strokeDasharray="2 8" />
+            <path d="M 700,318 C 715,305 735,300 742,310 C 750,322 748,345 742,365 C 735,388 718,400 700,408 C 688,415 680,418 675,412" fill="rgba(15,55,85,0.5)" stroke="rgba(60,140,160,0.2)" strokeWidth="1" />
+            {paths.map((p, i) => (
+              <g key={i}>
+                <path d={p} fill="none" stroke={STAGES[i].glow} strokeWidth="4" strokeLinecap="round" opacity="0.2" />
+                <path d={p} fill="none" stroke={STAGES[i].color} strokeWidth="1.8" strokeDasharray="9 5" strokeLinecap="round" markerEnd={`url(#a${i})`} opacity="0.5" />
+                <circle r="3.5" fill={STAGES[i].color} opacity="0.8"><animateMotion dur="3.5s" repeatCount="indefinite" begin={`${i*0.65}s`} path={p} /></circle>
+              </g>
+            ))}
+            {STAGES.map((s, i) => {
+              const p = NODES[i], l = LABELS[i], act = active === i;
+              return (
+                <g key={s.id} style={{ cursor: "pointer" }} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}>
+                  <circle cx={p.x} cy={p.y} r={act ? 42 : 32} fill={s.glow} opacity={act ? 0.3 : 0.1} style={{ transition: "all 0.25s" }} />
+                  <circle cx={p.x} cy={p.y} r={act ? 28 : 24} fill={act ? "rgba(15,30,50,0.95)" : "rgba(10,22,40,0.9)"} stroke={s.color} strokeWidth={act ? 3 : 2} style={{ transition: "all 0.25s" }} />
+                  <text x={p.x} y={p.y + 1} textAnchor="middle" dominantBaseline="central" fontSize="20" fill="white" style={{ pointerEvents: "none" }}>{s.icon}</text>
+                  <text x={p.x + l.dx} y={p.y + l.dy} textAnchor={l.anchor} fontSize={act ? "19" : "17"} fontFamily="'Playfair Display', serif" fontWeight="600" fill={s.color} style={{ transition: "font-size 0.2s", pointerEvents: "none" }}>{s.label}</text>
+                  <text x={p.x + l.dx} y={p.y + l.dy + 15} textAnchor={l.anchor} fontSize="11" fontWeight="300" fill="rgba(200,210,220,0.4)" style={{ pointerEvents: "none" }}>{s.subtitle}</text>
+                </g>
+              );
+            })}
+            <text x="460" y="295" textAnchor="middle" fontSize="13" fontWeight="300" letterSpacing="4" fill="rgba(180,200,180,0.15)" transform="rotate(-8,460,295)">NIRUP ISLAND</text>
+          </svg>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   6. MICRO-JOURNEYS (from westin + riahi artifacts)
+   ═══════════════════════════════════════════════════ */
+function MicroJourneys() {
+  const STAGES = ["Discover", "Explore", "Engage", "Decide", "Book", "Advocate"];
+  const SCOLORS = ["#D4A853", "#7CBDAB", "#E8B931", "#C4917B", "#8DB4D8", "#B8A9D4"];
+  const westin = [
+    { name: "SG Weekender", color: "#D4A853", steps: ["TikTok: 45 min ferry", "Getting Here page", "Weekend alerts signup", "Ferry + Offer email", "→ Marriott.com", "Review + share"] },
+    { name: "Family", color: "#7CBDAB", steps: ["Meta ad: Kids' club", "Family / Kids page", "Family Survival Pack", "Room + activity email", "→ Marriott.com", "Tags @nirup"] },
+    { name: "Wellness", color: "#B8A9D4", steps: ["IG reel: spa + ocean", "Wellness & Spa page", "Retreat alerts signup", "Retreat package email", "→ Marriott.com", "Posts transformation"] },
+    { name: "Day Tripper", color: "#E8B931", steps: ["Google: day trip SG", "Day Pass page", "Day pass deals signup", "Promo + ferry email", "→ Marriott.com", "Reel → friends enquire"] },
+  ];
+  const riahi = [
+    { name: "Villa / Group", color: "#C4917B", steps: ["Google: private villa SG", "Villa gallery + plans", "Villa Selection Guide", "Concierge + quote email", "→ nirupisland.com", "Refers friends"] },
+    { name: "Wedding", color: "#D4A853", steps: ["TikTok: island wedding", "Events & Weddings page", "Wedding enquiry form", "Tour invite + pkg email", "→ nirupisland.com", "Photos go viral"] },
+    { name: "Corporate", color: "#7CBDAB", steps: ["LinkedIn: team offsite", "MICE page + capacity", "Retreat Planner PDF", "Quote + visit invite", "→ nirupisland.com", "HR shares → others enquire"] },
+    { name: "Marina/Yacht", color: "#8DB4D8", steps: ["Google: marina berth SG", "Marina + berth specs", "Marina updates signup", "Seasonal offers email", "→ nirupisland.com", "Yacht community WOM"] },
+  ];
+
+  function JTable({ title, badge, badgeColor, data }) {
+    const [hRow, setHRow] = useState(null);
+    return (
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "clamp(14px,1.5vw,17px)", fontWeight: 700, color: C.white }}>{title}</span>
+          <span style={{ fontSize: "clamp(9px,0.9vw,11px)", padding: "3px 10px", borderRadius: 10, background: `${badgeColor}15`, border: `1px solid ${badgeColor}30`, color: badgeColor, fontWeight: 600 }}>{badge}</span>
+        </div>
+        <div style={{ overflowX: "auto", borderRadius: 8 }}>
+          <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse", fontSize: "clamp(10px,1vw,12px)" }}>
+            <thead><tr style={{ background: "rgba(255,255,255,0.05)" }}>
+              <th style={{ padding: "8px 10px", textAlign: "left", color: C.gold, fontWeight: 600, fontSize: "clamp(9px,0.9vw,10px)", letterSpacing: 0.5 }}>AUDIENCE</th>
+              {STAGES.map((s, i) => <th key={i} style={{ padding: "8px 4px", textAlign: "center", color: SCOLORS[i], fontWeight: 600, fontSize: "clamp(9px,0.9vw,10px)" }}>{s}</th>)}
+            </tr></thead>
+            <tbody>{data.map((j, ji) => (
+              <tr key={ji} onMouseEnter={() => setHRow(ji)} onMouseLeave={() => setHRow(null)} style={{ background: hRow === ji ? "rgba(255,255,255,0.03)" : "transparent", borderBottom: "1px solid rgba(255,255,255,0.03)", transition: "background 0.2s" }}>
+                <td style={{ padding: "7px 10px", fontWeight: 700, color: j.color, whiteSpace: "nowrap" }}>{j.name}</td>
+                {j.steps.map((s, si) => <td key={si} style={{ padding: "7px 5px", color: hRow === ji ? "rgba(230,230,225,0.8)" : "rgba(200,210,220,0.5)", textAlign: "center", lineHeight: 1.4, transition: "color 0.2s" }}>{s}</td>)}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Section id="micro-j" bg="linear-gradient(165deg, #0a1628 0%, #0d2137 40%, #0f2a42 70%, #091a2e 100%)">
+      <FadeIn><Tag>Micro Journeys</Tag><Title light>Key Audience Journeys</Title><Sub light>Each audience follows the same loop — with different touchpoints at every stage.</Sub></FadeIn>
+      <FadeIn delay={100}><JTable title="Westin Nirup Island Resort" badge="All bookings → Marriott.com" badgeColor="#8DB4D8" data={westin} /></FadeIn>
+      <FadeIn delay={200}><JTable title="Riahi Residences · Private Villas" badge="All bookings → nirupisland.com" badgeColor={C.coral} data={riahi} /></FadeIn>
+      <FadeIn delay={300}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: "clamp(10px,1vw,12px)" }}>
+          <div style={{ padding: "7px 14px", borderRadius: 6, background: "rgba(180,80,40,0.1)", border: "1px solid rgba(200,120,60,0.18)", color: "rgba(220,160,100,0.75)" }}>⚠️ Prerequisite: Getting Here page must be fixed before ad spend</div>
+          <div style={{ padding: "7px 14px", borderRadius: 6, background: "rgba(74,139,111,0.08)", border: "1px solid rgba(74,139,111,0.15)", color: "rgba(124,189,171,0.7)" }}>💡 48-hr holds + instant perks accelerate Decide → Book for Riahi</div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   7. GROWTH TARGETS
+   ═══════════════════════════════════════════════════ */
+function GrowthTargets() {
+  return (
+    <Section id="targets" bg={C.white}>
+      <FadeIn><Tag>Growth Targets</Tag><Title>3× in 90 Days. 10× by Month 12.</Title><Sub>North Star Metric: Email Signup Rate (signups ÷ qualified sessions)</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: 14, marginBottom: 32 }}>
+        {[
+          { label: "Email Signups", current: "~50/mo", target: "150+", color: C.teal, icon: "📧" },
+          { label: "Engaged Sessions", current: "~300/mo", target: "500+", color: C.ocean, icon: "📊" },
+          { label: "Referral Clicks", current: "~100/mo", target: "200+", color: C.coral, icon: "🔗" },
+        ].map((m, i) => (
+          <FadeIn key={i} delay={i * 90}>
+            <div style={{ borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ background: m.color, padding: "clamp(14px,2vw,22px) 14px", color: C.white, textAlign: "center" }}>
+                <div style={{ fontSize: 22, marginBottom: 4 }}>{m.icon}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(26px,4vw,34px)", fontWeight: 700 }}>3×</div>
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", fontWeight: 600, opacity: 0.9 }}>{m.label}</div>
+              </div>
+              <div style={{ background: C.pearl, padding: 12, display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 8, letterSpacing: 1, color: C.muted, textTransform: "uppercase" }}>Now</div><div style={{ fontSize: 13, fontWeight: 700, color: C.midnight }}>{m.current}</div></div>
+                <span style={{ color: C.muted }}>→</span>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 8, letterSpacing: 1, color: C.muted, textTransform: "uppercase" }}>90-Day</div><div style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.target}</div></div>
+              </div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+      <FadeIn delay={300}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: 12 }}>
+          {[
+            { brand: "Westin (Marriott)", color: C.teal, rows: [["Email signups/mo","120+ → 350+"],["Signup rate","0.6% → 1.0%"],["Referral clicks/mo","200+ → 400+"],["Welcome open rate","30% → 35%"]] },
+            { brand: "Riahi Residences", color: C.coral, rows: [["Holds placed/mo","15+ → 40+"],["Hold→booking","20% → 30%"],["Direct bookings/mo","6+ → 15+"],["Referral bookings/mo","1+ → 5+"]] },
+          ].map(b => (
+            <div key={b.brand} style={{ background: C.pearl, borderRadius: 12, padding: "clamp(14px,2vw,22px)", borderLeft: `4px solid ${b.color}` }}>
+              <div style={{ fontSize: "clamp(11px,1.2vw,14px)", fontWeight: 700, color: b.color, marginBottom: 12 }}>{b.brand}</div>
+              {b.rows.map(r => (
+                <div key={r[0]} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(0,0,0,0.04)", fontSize: "clamp(10px,1vw,12px)" }}>
+                  <span style={{ color: C.muted }}>{r[0]}</span>
+                  <span style={{ fontWeight: 700, color: C.midnight }}>{r[1]}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   8. 8 AUDIENCES
+   ═══════════════════════════════════════════════════ */
+function Audiences() {
+  const data = [
+    { icon: "🌴", name: "SG Weekenders", sub: "45 min escape", lead: "1–3 wk", type: "B2C", color: C.teal, budget: "44%" },
+    { icon: "👨‍👩‍👧‍👦", name: "Families", sub: "Safe adventure", lead: "2–6 wk", type: "B2C", color: C.teal, budget: "21%" },
+    { icon: "🧘", name: "Wellness", sub: "Digital detox", lead: "2–8 wk", type: "B2C", color: C.teal, budget: "14%" },
+    { icon: "🏡", name: "Villa Seekers", sub: "High net worth", lead: "4–12 wk", type: "B2C", color: C.coral, budget: "18%" },
+    { icon: "🏢", name: "Corporate/MICE", sub: "Team building", lead: "4–16 wk", type: "B2B", color: C.ocean, budget: "11%" },
+    { icon: "💒", name: "Weddings", sub: "Island backdrop", lead: "6–18 mo", type: "B2B", color: C.ocean, budget: "7%" },
+    { icon: "⛵", name: "Marina/Yacht", sub: "Berthing & CIQ", lead: "Varies", type: "Niche", color: C.muted, budget: "4%" },
+    { icon: "☀️", name: "Day Trippers", sub: "Accessible luxury", lead: "Same wk", type: "B2C", color: C.teal, budget: "5%" },
+  ];
+  return (
+    <Section id="audiences" bg={C.pearl}>
+      <FadeIn><Tag>Guest Segments</Tag><Title>The 8 Core Audiences</Title><Sub>Each discovers, evaluates, and books differently — and gets a tailored strategy.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 170px), 1fr))", gap: 10 }}>
+        {data.map((a, i) => (
+          <FadeIn key={i} delay={i * 45}>
+            <div style={{ background: C.white, borderRadius: 12, padding: "clamp(12px,1.8vw,18px) clamp(10px,1.4vw,16px)", border: "1px solid rgba(0,0,0,0.05)", height: "100%", transition: "all 0.25s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "none"; }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 22 }}>{a.icon}</span>
+                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.8, color: a.color, textTransform: "uppercase", background: `${a.color}10`, padding: "2px 6px", borderRadius: 5, alignSelf: "start" }}>{a.type}</span>
+              </div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.midnight, marginBottom: 1 }}>{a.name}</div>
+              <div style={{ fontSize: "clamp(10px,1vw,11px)", color: C.muted, marginBottom: 6 }}>{a.sub}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(9px,0.85vw,10px)" }}>
+                <span style={{ color: C.muted }}>⏱ {a.lead}</span>
+                <span style={{ color: a.color, fontWeight: 700 }}>{a.budget}</span>
+              </div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   8b. AUDIENCE TIMING & PRIORITY
+   ═══════════════════════════════════════════════════ */
+function AudienceTiming() {
+  const tiers = [
+    { tier: "Tier 1", label: "Always-On", color: "#8B6914",
+      audiences: [
+        { name: "SG Weekenders", rank: 2, sub: "Every Long Weekend", type: "B2C", lead: "1-3 wk ahead", aov: "Standard", months: [0,1,0,0,2,1,0,1,0,0,0,1], desc: "6 long weekends in 2026. May is extraordinary — 3 in one month. Pulse 2-3 wks before each." },
+        { name: "Day Trippers", rank: 6, sub: "Good Weather Weekends", type: "B2C", lead: "Same wk ahead", aov: "Lowest", months: [0,0,0,0,2,1,0,0,0,0,0,0], desc: "Impulse Thu-Sat decisions. Heaviest Feb-May (dry, pre-haze). TikTok primary channel." },
+      ]},
+    { tier: "Tier 2", label: "Calendar-Locked", color: "#B8860B",
+      audiences: [
+        { name: "Families", rank: 1, sub: "School Holidays", type: "B2C", lead: "2-6 wk ahead", aov: "Standard-High", months: [0,0,1,0,0,2,0,0,1,0,0,2], desc: "Jun + Dec = 70% of family spend. Mar + Sep sweet spot for a 45-min ferry destination." },
+        { name: "Corporate/MICE", rank: 3, sub: "Anti-Family Calendar", type: "B2B", lead: "4-16 wk ahead", aov: "High (group)", months: [0,1,1,1,0,-1,0,1,1,1,2,-1], desc: "Inverse to families = year-round coverage. Nov peak (D&Ds). Dead in Jun + Dec." },
+      ]},
+    { tier: "Tier 3-4", label: "Consideration-Cycle / Niche", color: "#9C6B30",
+      audiences: [
+        { name: "Villa Seekers", rank: 4, sub: "3 Peak Anchors / Year", type: "B2C", lead: "4-12 wk ahead", aov: "3-10x hotel", months: [0,2,0,1,1,2,0,0,0,0,0,2], desc: "CNY (Feb), June hols, Christmas. Launch hold campaigns 8-10 weeks before each peak." },
+        { name: "Weddings", rank: 5, sub: "Sep-Nov Peak, Ghost Month Gap", type: "B2B", lead: "6-18 mo ahead", aov: "Highest total", months: [0,0,1,1,1,0,-1,-1,1,2,2,0], desc: "Inquiry season Nov-Feb (proposals). Execution Sep-Nov. Ghost Month Jul-Aug avoided." },
+        { name: "Wellness", rank: 7, sub: "Burnout Cycles", type: "B2C", lead: "2-8 wk ahead", aov: "Premium", months: [1,0,0,1,1,0,0,0,0,1,0,0], desc: "New Year reset (Jan), mid-year burnout (May), Q4 stress (Oct). Strong midweek filler." },
+        { name: "Marina/Yacht", rank: 8, sub: "NE Monsoon Season", type: "B2C", lead: "Varies ahead", aov: "High", months: [1,1,1,1,0,0,-1,-1,0,0,1,1], desc: "Nov-Apr: calm seas. Too niche for paid spend — partnerships + Google always-on." },
+      ]},
+  ];
+  const MO = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+  // -1=dead, 0=normal, 1=strong, 2=peak
+  const mColor = (v) => v === 2 ? "#C4443A" : v === 1 ? "#B8860B" : v === -1 ? "rgba(60,40,10,0.08)" : "rgba(60,40,10,0.15)";
+  const mBg = (v) => v === 2 ? "rgba(196,68,58,0.14)" : v === 1 ? "rgba(184,134,11,0.12)" : v === -1 ? "rgba(60,40,10,0.03)" : "rgba(60,40,10,0.05)";
+
+  return (
+    <Section id="timing" bg={C.sand}>
+      <FadeIn><Tag>Audience Timing & Priority</Tag><Title>8 Audiences — When They Book, How to Rank Them</Title><Sub>Priority = volume x value x predictability. Each audience has distinct peak windows aligned to Singapore's calendar.</Sub></FadeIn>
+      <FadeIn delay={60}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18, fontSize: "clamp(9px,0.9vw,11px)" }}>
+          {[["Peak","#C4443A"],["Strong","#B8860B"],["Active","rgba(60,40,10,0.25)"],["Dead","rgba(60,40,10,0.08)"]].map(([l,c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: c === "rgba(60,40,10,0.25)" ? "rgba(60,40,10,0.15)" : c === "rgba(60,40,10,0.08)" ? "rgba(60,40,10,0.04)" : c + "22", border: `2px solid ${c}` }} />
+              <span style={{ color: "#7A6840" }}>{l}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 6 }}>
+            <div style={{ width: 18, height: 18, borderRadius: "50%", background: C.coral, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: C.white }}>1</div>
+            <span style={{ color: "#7A6840" }}>Priority rank</span>
+          </div>
+        </div>
+      </FadeIn>
+      {tiers.map((tier, ti) => (
+        <FadeIn key={ti} delay={ti * 80}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: ti > 0 ? 14 : 0 }}>
+            <span style={{ background: tier.color, color: C.white, fontSize: "clamp(8px,0.8vw,9px)", fontWeight: 700, padding: "3px 8px", borderRadius: 4, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{tier.tier}</span>
+            <span style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 600, color: "#3C2A0A" }}>{tier.label}</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${tier.audiences.length <= 2 ? "300px" : "240px"}), 1fr))`, gap: 10, marginBottom: 6 }}>
+            {tier.audiences.map((a, ai) => (
+              <div key={ai} style={{ background: C.white, borderRadius: 12, padding: "clamp(14px,1.8vw,20px)", border: "1px solid rgba(60,40,10,0.06)", position: "relative", transition: "all 0.25s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = tier.color + "40"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.06)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(60,40,10,0.06)"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                <div style={{ position: "absolute", top: 12, right: 14 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.coral, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: C.white }}>{a.rank}</div>
+                </div>
+                <div style={{ fontSize: "clamp(14px,1.5vw,17px)", fontWeight: 700, color: "#3C2A0A", marginBottom: 1 }}>{a.name}</div>
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", color: tier.color, fontWeight: 500, marginBottom: 8 }}>{a.sub}</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: "clamp(9px,0.85vw,10px)" }}>
+                  <span style={{ background: a.type === "B2B" ? "rgba(91,122,157,0.1)" : "rgba(139,105,20,0.08)", color: a.type === "B2B" ? "#5B7A9D" : "#9C6B30", fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>{a.type}</span>
+                  <span style={{ color: "#9A8B7A" }}>Books {a.lead}</span>
+                  <span style={{ color: "#9A8B7A" }}>AOV: {a.aov}</span>
+                </div>
+                <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
+                  {MO.map((m, mi) => (
+                    <div key={mi} style={{ flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: "clamp(7px,0.7vw,9px)", color: mColor(a.months[mi]), fontWeight: a.months[mi] >= 1 ? 700 : 400, marginBottom: 2 }}>{m}</div>
+                      <div style={{ height: "clamp(3px,0.5vw,5px)", borderRadius: 2, background: mBg(a.months[mi]), border: a.months[mi] === 2 ? "1px solid #C4443A" : a.months[mi] === 1 ? "1px solid rgba(184,134,11,0.35)" : "1px solid transparent" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#6B5D4F", lineHeight: 1.55 }}>{a.desc}</div>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      ))}
+      <FadeIn delay={300}>
+        <div style={{ marginTop: 18, background: "linear-gradient(135deg, rgba(139,105,20,0.08), rgba(139,105,20,0.04))", borderRadius: 12, padding: "clamp(14px,2vw,20px)", border: "1px solid rgba(139,105,20,0.15)" }}>
+          <div style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, color: C.coral, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Occupancy Backbone</div>
+          <div style={{ fontSize: "clamp(12px,1.3vw,15px)", fontWeight: 700, color: "#3C2A0A", lineHeight: 1.5, marginBottom: 8 }}>Families + Corporate are inverse. Together they cover most of the year.</div>
+          <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#6B5D4F", lineHeight: 1.55 }}>Add Weekenders for frequency and Villas for revenue = 80%+ of the opportunity.</div>
+          <div style={{ display: "flex", gap: 2, marginTop: 12 }}>
+            {MO.map((m, mi) => {
+              // Families peak: Mar(2), Jun(5), Sep(8), Dec(11). Corporate peak: Mar-May(2-4), Jul-Nov(6-10)
+              const fam = [0,0,1,0,0,2,0,0,1,0,0,2][mi];
+              const corp = [0,0,1,1,0,-1,1,1,1,1,2,-1][mi];
+              const both = fam >= 1 && corp >= 1;
+              return (
+                <div key={mi} style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ fontSize: "clamp(7px,0.7vw,9px)", fontWeight: 600, color: "#7A6840", marginBottom: 2 }}>{m}</div>
+                  <div style={{ height: "clamp(12px,1.5vw,18px)", borderRadius: 3, background: both ? "#8B6914" : fam >= 1 ? "#E8A832" : corp >= 1 ? "#5B7A9D" : "rgba(60,40,10,0.06)" }} />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: "clamp(8px,0.8vw,10px)" }}>
+            {[["Families","#E8A832"],["Corporate","#5B7A9D"],["Both","#8B6914"]].map(([l,c]) => (
+              <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} /><span style={{ color: "#9A8B7A" }}>{l}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   8c. CAMPAIGN CALENDAR 2026
+   ═══════════════════════════════════════════════════ */
+function CampaignCalendar() {
+  const quarters = [
+    { q: "Q1", range: "Jan - Feb - Mar", months: [
+      { m: "Jan", auds: "Wellness, Weekenders", headline: "New Year reset campaigns + NYD long wknd", desc: "Wellness 'resolution' content. Weekender pulse for NYD (Thu 1st — take Fri for 4-day break).", level: 0 },
+      { m: "Feb", auds: "Villa Seekers, Weekenders", headline: "CNY villa holds + weekender social push", desc: "CNY multi-gen villa reunions (17-18). Flash alerts for remaining CNY dates. Weekender TikTok.", level: 0 },
+      { m: "Mar", auds: "Families, Weekenders", headline: "March school hol blitz + Hari Raya long wknd", desc: "School holidays (14-22) — Nirup sweet spot, too short for long-haul. Hari Raya Puasa (20th).", level: 0 },
+    ]},
+    { q: "Q2", range: "Apr - May - Jun", months: [
+      { m: "Apr", auds: "Corporate, Weddings", headline: "June family pre-sell + Good Friday weekender", desc: "Good Friday (3rd) long wknd. Start June family campaign. Villa hold push for June dates.", level: 0 },
+      { m: "May", auds: "Weekenders, Day Trippers", headline: "3 LONG WKNDS — heaviest weekender month", desc: "Labour Day (1st), Hari Raya Haji (27th), Vesak (31st to 1 Jun). Max weekender + day tripper spend. Villa June holds urgent.", level: 2 },
+      { m: "Jun", auds: "Families, Villas", headline: "PEAK — all family + villa campaigns at max", desc: "School holidays (30 May-28 Jun). Biggest family window of the year. Villa stays at premium rates.", level: 2 },
+    ]},
+    { q: "Q3", range: "Jul - Aug - Sep", months: [
+      { m: "Jul", auds: "Corporate", headline: "Inverse play — corporate resumes, family quiets", desc: "Corporate offsites restart. Ghost Month begins (weddings quiet). Marina content. Low leisure demand.", level: -1 },
+      { m: "Aug", auds: "Weekenders, Corporate", headline: "National Day wknd + Q3 corporate retreats", desc: "National Day (Sun 9th, Mon 10th in lieu). Q3 corporate reviews and team events.", level: 0 },
+      { m: "Sep", auds: "Families, Wellness, Corp", headline: "Sep school break + burnout wellness", desc: "School break (5-13). Q3 burnout wellness. Corporate Q3 reviews + pre-Q4 planning.", level: 0 },
+    ]},
+    { q: "Q4", range: "Oct - Nov - Dec", months: [
+      { m: "Oct", auds: "Weddings, Villas", headline: "Peak wedding season + Dec villa hold launch", desc: "Wedding season opens. PSLE break (12-14) hidden gem. Launch Dec villa hold campaigns.", level: 2 },
+      { m: "Nov", auds: "Corporate, Weddings, Villas", headline: "PEAK D&Ds + Dec villa urgency", desc: "Corporate year-end peak (D&Ds, celebrations). Weddings continue. Deepavali (9th). Dec villa hold urgency.", level: 2 },
+      { m: "Dec", auds: "Families, Villas, Weekenders", headline: "PEAK season — all leisure segments max", desc: "School holidays (21 Nov-31 Dec). Christmas (25th) long wknd. NYE premium. All leisure at max.", level: 2 },
+    ]},
+  ];
+  const levelTag = (l) => l === 2 ? { label: "PEAK", bg: "#C4443A", color: "#fff" } : l === 1 ? { label: "STRONG", bg: "#B8860B", color: "#fff" } : l === -1 ? { label: "QUIET", bg: "rgba(60,40,10,0.08)", color: "#9A8B7A" } : null;
+  const borderColor = (l) => l === 2 ? "#C4443A" : l === -1 ? "rgba(60,40,10,0.1)" : "rgba(60,40,10,0.06)";
+
+  return (
+    <Section id="calendar" bg={C.pearl}>
+      <FadeIn><Tag>Monthly Campaign Priorities</Tag><Title>What to Push, When — 2026 Campaign Calendar</Title><Sub>Campaign timing aligned to Singapore 2026 school holidays, public holidays, and seasonal demand patterns.</Sub></FadeIn>
+      <FadeIn delay={60}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, fontSize: "clamp(9px,0.9vw,10px)" }}>
+          {[["Peak month","#C4443A"],["Strong month","#B8860B"],["Normal","rgba(60,40,10,0.2)"],["Quiet","rgba(60,40,10,0.08)"]].map(([l,c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <div style={{ width: 3, height: 14, borderRadius: 2, background: c }} /><span style={{ color: "#7A6840" }}>{l}</span>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+      {quarters.map((q, qi) => (
+        <FadeIn key={qi} delay={qi * 70}>
+          <div style={{ marginBottom: qi < 3 ? 12 : 0 }}>
+            <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9C6B30", fontWeight: 600, marginBottom: 6 }}>{q.q} — {q.range}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 240px), 1fr))", gap: 8 }}>
+              {q.months.map((mo, mi) => {
+                const tag = levelTag(mo.level);
+                return (
+                  <div key={mi} style={{ background: mo.level === -1 ? "rgba(250,246,240,0.6)" : C.white, borderRadius: 10, padding: "clamp(12px,1.5vw,18px)", borderLeft: `3px solid ${borderColor(mo.level)}`, border: `1px solid ${borderColor(mo.level)}`, borderLeftWidth: 3, transition: "all 0.2s" }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.05)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 4 }}>
+                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(18px,2.5vw,26px)", fontWeight: 700, color: "#3C2A0A" }}>{mo.m}</div>
+                      {tag && <span style={{ background: tag.bg, color: tag.color, fontSize: "clamp(7px,0.7vw,8px)", fontWeight: 700, padding: "2px 6px", borderRadius: 3, letterSpacing: 0.5 }}>{tag.label}</span>}
+                    </div>
+                    <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#B8860B", fontWeight: 500, marginBottom: 5 }}>{mo.auds}</div>
+                    <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: "#3C2A0A", lineHeight: 1.4, marginBottom: 4 }}>{mo.headline}</div>
+                    <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#7A6B5D", lineHeight: 1.55 }}>{mo.desc}</div>
+                    <div style={{ display: "flex", gap: 1, marginTop: 8 }}>
+                      {Array.from({ length: 12 }).map((_, di) => (
+                        <div key={di} style={{ flex: 1, height: 3, borderRadius: 1, background: di === qi * 3 + mi ? (mo.level === 2 ? "#C4443A" : mo.level === 1 ? "#B8860B" : "rgba(139,105,20,0.35)") : "rgba(60,40,10,0.06)" }} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </FadeIn>
+      ))}
+      <FadeIn delay={350}>
+        <div style={{ marginTop: 18, background: "linear-gradient(135deg, rgba(139,105,20,0.08), rgba(196,68,58,0.04))", borderRadius: 12, padding: "clamp(12px,1.8vw,18px)", border: "1px solid rgba(139,105,20,0.12)", display: "flex", gap: 10, alignItems: "start" }}>
+          <span style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, color: C.coral, letterSpacing: 1, textTransform: "uppercase", background: C.coral + "15", padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0, marginTop: 1 }}>Key Insight</span>
+          <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#3C2A0A", lineHeight: 1.6 }}>
+            Families + Corporate are inverse — shift spend between them for year-round coverage. <strong style={{ color: "#C4443A" }}>May 2026</strong> has three long weekends (extraordinary) — go heaviest on Weekender + Day Tripper campaigns. <strong style={{ color: "#C4443A" }}>PSLE break</strong> (12-14 Oct) is a hidden gem most competitors miss.
+          </div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   9. SEASONALITY HEATMAP (from seasonality-slide.jsx)
+   ═══════════════════════════════════════════════════ */
+function Seasonality() {
+  const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const AUD = [
+    { name: "SG Weekenders", color: "#D4A017", i: [2,3,3,3,5,3,2,4,2,2,2,4], notes: ["NYD long wknd","CNY break","Hari Raya + school hols","Good Friday long wknd","3 long wknds!","School hols spillover","Quiet","National Day","School break","PSLE break","Deepavali","Christmas + NYE"] },
+    { name: "Families", color: "#E8A832", i: [1,2,4,2,3,5,1,1,4,3,3,5], notes: ["Kids in school","Planning Mar break","March school hols","Planning June hols","School hols begin 30 May","PEAK June school hols","Kids back","Term time","Sep break","PSLE marking break","Year-end hols start","PEAK Dec + Christmas"] },
+    { name: "Wellness", color: "#8B9D6A", i: [4,3,2,3,4,3,2,2,3,4,3,2], notes: ["NYE resolutions spike","Post-CNY detox","Steady","Pre-summer prep","Mid-year burnout","Moderate","Quieter","Steady","Q3 burnout escape","Q4 stress begins","Year-end burnout","Holiday recovery"] },
+    { name: "Villa Seekers", color: "#9C6B30", i: [2,4,3,3,4,5,2,2,2,3,4,5], notes: ["Budget recovery","CNY villas (multi-gen)","Group planning for June","Hold urgency — June filling","Flash alerts for June","PEAK multi-gen stays","Post-peak","Long wknd groups","Sep villa stays","Dec planning begins","Dec hold urgency","PEAK Christmas/NYE"] },
+    { name: "Corporate", color: "#5B7A9D", i: [3,2,4,4,3,1,3,4,4,4,5,1], notes: ["Post-holiday ramp-up","Pre-CNY quiet","Q1 offsites kick in","Mid-year strategy","Before June family leave","LOW — staff on leave","Corporate resumes","Q3 reviews","Pre-Q4 planning","Year-end sessions","PEAK D&Ds + events","Year-end shutdown"] },
+    { name: "Weddings", color: "#C4768A", i: [3,3,4,4,4,3,1,1,4,5,5,2], notes: ["Engagement inquiries","Research continues","Popular wedding month","Peak execution","Strong month","Moderate","Ghost Month — avoided","Ghost Month","Season reopens","PEAK — best weather","PEAK pre-festive","Rain risk — fewer"] },
+    { name: "Marina", color: "#3D7A8A", i: [3,3,3,3,2,2,1,1,2,2,3,3], notes: ["NE monsoon — calmer","Good sailing","Steady","Transitional","SW monsoon coming","Rougher seas","SW monsoon","Peak rough","Improving","Improving","NE returns","Peak festive season"] },
+    { name: "Day Trippers", color: "#D4883E", i: [2,3,3,3,5,4,2,3,3,2,2,3], notes: ["Post-holiday quiet","CNY day trips","School hol trips","Good Friday wknd","PEAK 3 long wknds","School hol trips","No long wknds","National Day","School break trips","Weather dependent","Deepavali wknd","Christmas/NYE"] },
+  ];
+  const EVENTS = [[0,"NYD","ph"],[1,"CNY","ph"],[2,"Hari Raya","ph"],[2,"Sch Hol","sc"],[3,"Good Fri","ph"],[4,"Labour","ph"],[4,"Hari Raya H","ph"],[4,"Vesak","ph"],[5,"Sch Hol","sc"],[7,"Nat Day","ph"],[8,"Sch Hol","sc"],[9,"PSLE","sc"],[10,"Deepavali","ph"],[10,"Sch Hol","sc"],[11,"Christmas","ph"],[11,"Sch Hol","sc"]];
+  const heat = (lv, col) => { const o = [0,0.08,0.2,0.38,0.58,0.82][lv]||0; const r=parseInt(col.slice(1,3),16),g=parseInt(col.slice(3,5),16),b=parseInt(col.slice(5,7),16); return `rgba(${r},${g},${b},${o})`; };
+  const [hCell, setHCell] = useState(null);
+
+  return (
+    <Section id="season" bg={C.sand}>
+      <FadeIn><Tag>Demand Seasonality</Tag><Title>8 Audiences × 12 Months</Title><Sub>When each audience is most likely to visit. Hover any cell for Singapore 2026 context.</Sub></FadeIn>
+      <FadeIn delay={80}>
+        <div style={{ overflowX: "auto", marginBottom: 4, borderRadius: "8px 8px 0 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "clamp(90px,14vw,156px) repeat(12, 1fr)", minWidth: 700, gap: 0 }}>
+            <div style={{ fontSize: "clamp(7px,0.8vw,9px)", color: "#9C6B30", padding: "2px 6px", fontWeight: 700 }}>SG 2026 EVENTS</div>
+            {MO.map((m, mi) => {
+              const evts = EVENTS.filter(e => e[0] === mi);
+              return <div key={mi} style={{ padding: "1px 2px", display: "flex", flexDirection: "column", gap: 1, justifyContent: "center" }}>
+                {evts.map((ev, ei) => <div key={ei} style={{ fontSize: "clamp(6px,0.7vw,8px)", lineHeight: 1.1, padding: "1px 3px", borderRadius: 2, textAlign: "center", fontWeight: 700, background: ev[2]==="ph" ? "rgba(196,68,58,0.1)" : "rgba(74,139,92,0.1)", color: ev[2]==="ph" ? "#C4443A" : "#3A7A4A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev[1]}</div>)}
+              </div>;
+            })}
+          </div>
+        </div>
+        <div style={{ overflowX: "auto", borderRadius: "0 0 8px 8px", border: "1px solid rgba(60,40,10,0.08)" }}>
+          <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: "clamp(9px,0.9vw,11px)", background: C.white }}>
+            <thead><tr style={{ background: "#3C2A0A" }}>
+              <th style={{ padding: "6px 8px", color: "#D4A017", textAlign: "left", fontSize: "clamp(8px,0.8vw,9px)", letterSpacing: 0.5, width: "clamp(90px,14vw,156px)" }}>AUDIENCE</th>
+              {MO.map(m => <th key={m} style={{ padding: "6px 2px", color: "#FAF6F0", textAlign: "center", fontSize: "clamp(8px,0.85vw,10px)", fontWeight: 700 }}>{m}</th>)}
+            </tr></thead>
+            <tbody>{AUD.map((a, ai) => (
+              <tr key={ai} style={{ borderTop: ai > 0 ? "1px solid rgba(60,40,10,0.04)" : "none" }}>
+                <td style={{ padding: "5px 8px", background: "rgba(250,246,240,0.6)", borderRight: `3px solid ${a.color}` }}>
+                  <div style={{ fontSize: "clamp(9px,1vw,11px)", fontWeight: 700, color: "#3C2A0A", whiteSpace: "nowrap" }}>{a.name}</div>
+                </td>
+                {a.i.map((lv, mi) => {
+                  const isH = hCell?.a === ai && hCell?.m === mi;
+                  return <td key={mi} onMouseEnter={() => setHCell({ a: ai, m: mi })} onMouseLeave={() => setHCell(null)}
+                    style={{ background: heat(lv, a.color), textAlign: "center", padding: 3, position: "relative", outline: isH ? `2px solid ${a.color}` : "none", outlineOffset: -2, zIndex: isH ? 10 : 1 }}>
+                    {lv === 5 && <div style={{ fontSize: "clamp(6px,0.65vw,7px)", fontWeight: 800, color: "#C4443A", letterSpacing: 0.3 }}>PEAK</div>}
+                    <div style={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                      {[1,2,3,4,5].map(d => <div key={d} style={{ width: "clamp(2.5px,0.4vw,4px)", height: "clamp(2.5px,0.4vw,4px)", borderRadius: "50%", background: d <= lv ? "rgba(60,40,10,0.65)" : "rgba(60,40,10,0.08)" }} />)}
+                    </div>
+                    {isH && <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: "50%", transform: "translateX(-50%)", background: "#3C2A0A", color: "#FAF6F0", padding: "5px 9px", borderRadius: 5, fontSize: "clamp(9px,0.9vw,10px)", lineHeight: 1.3, width: 180, textAlign: "left", zIndex: 100, boxShadow: "0 3px 12px rgba(0,0,0,0.25)", pointerEvents: "none" }}>
+                      <div style={{ fontWeight: 700, color: "#D4A017", marginBottom: 2 }}>{a.name} — {MO[mi]}</div>
+                      <div>{a.notes[mi]}</div>
+                      <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderTop: "4px solid #3C2A0A" }} />
+                    </div>}
+                  </td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", fontSize: "clamp(8px,0.85vw,10px)", color: "#9A8B7A", alignItems: "center" }}>
+          <span style={{ fontWeight: 700 }}>Intensity:</span>
+          {["Low","","Mid","","Peak"].map((l,i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}><div style={{ width: 11, height: 11, borderRadius: 2, background: `rgba(180,130,40,${[0.08,0.2,0.38,0.58,0.82][i]})`, border: "1px solid rgba(60,40,10,0.06)" }} />{l && <span>{l}</span>}</div>)}
+          <span style={{ margin: "0 3px", color: "rgba(60,40,10,0.15)" }}>|</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: "#C4443A" }} /><span>PH</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4A8B5C" }} /><span>School</span></div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   10. WESTIN STRATEGY
+   ═══════════════════════════════════════════════════ */
+function WestinStrategy() {
+  return (
+    <Section id="westin" bg={`linear-gradient(160deg, ${C.midnight}, ${C.ocean})`}>
+      <FadeIn><Tag>Westin Strategy</Tag><Title light>What We Say That Marriott Won't</Title><Sub light>Marriott markets rooms. We market the island destination.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 210px), 1fr))", gap: 12 }}>
+        {[
+          { icon: "📍", title: "The Proximity Story", desc: "'45 minutes from Singapore' — Marriott won't emphasise this. We own the 'quick escape' narrative." },
+          { icon: "🗺️", title: "Destination Depth", desc: "Getting Here logistics, ferry schedules, island experiences, dining guides — content Marriott's brand page won't create." },
+          { icon: "🏡", title: "The Villa Option", desc: "Marriott only sells Westin rooms. We sell the full island: resort OR private villas." },
+          { icon: "🎭", title: "Experiential Content", desc: "Marina, water sports, spa journeys, kids' activities — the emotional island story that drives the booking decision." },
+        ].map((c, i) => (
+          <FadeIn key={i} delay={i * 70}>
+            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "clamp(14px,2vw,22px)", border: "1px solid rgba(255,255,255,0.07)", height: "100%" }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>{c.icon}</div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.white, marginBottom: 5 }}>{c.title}</div>
+              <div style={{ fontSize: "clamp(10px,1.1vw,12px)", color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>{c.desc}</div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+      <FadeIn delay={350}><div style={{ marginTop: 20, padding: "10px 18px", background: `${C.gold}12`, borderRadius: 10, border: `1px solid ${C.gold}25`, fontSize: "clamp(10px,1.1vw,12px)", color: C.gold, fontWeight: 600 }}>⚡ Coordinate brand terms with Marriott to avoid bidding against each other on Google Ads.</div></FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   11. RIAHI STRATEGY
+   ═══════════════════════════════════════════════════ */
+function RiahiStrategy() {
+  const tactics = [
+    { icon: "🔒", title: "Lock in Your Dates", sub: "48-Hr Courtesy Hold", desc: "Hold villa + dates for 48hrs, no payment.", conv: "25–30%" },
+    { icon: "👥", title: "Quote My Group", sub: "Per-Person Pricing", desc: "Select villa → nights → guests → cost emailed.", conv: "10–20%" },
+    { icon: "🎁", title: "Choose Your Gift", sub: "Booking Perks", desc: "Yacht cruise, spa credit, private dinner, late checkout.", conv: "70–85%" },
+    { icon: "🔔", title: "Flash Alerts", sub: "Date Waitlists", desc: "'Notify me for June holidays.' Tiny lists, near-certain opens.", conv: "25–35%" },
+    { icon: "💌", title: "Refer a Friend", sub: "SGD 200 Gift", desc: "Villa guests know other villa travelers. <5% of AOV.", conv: "0.3–0.5×" },
+  ];
+  return (
+    <Section id="riahi" bg={C.sand}>
+      <FadeIn><Tag>Riahi Residences</Tag><Title>5 Booking Acceleration Tactics</Title><Sub>We own the full booking funnel — every email captured accelerates toward a direct conversion.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 10, marginBottom: 28 }}>
+        {tactics.map((t, i) => (
+          <FadeIn key={i} delay={i * 60}>
+            <div style={{ background: C.white, borderRadius: 12, padding: "clamp(12px,1.8vw,20px)", border: "1px solid rgba(0,0,0,0.04)", height: "100%", display: "flex", flexDirection: "column" }}>
+              <div style={{ fontSize: 24, marginBottom: 6 }}>{t.icon}</div>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.midnight, marginBottom: 1 }}>{t.title}</div>
+              <div style={{ fontSize: "clamp(9px,0.9vw,10px)", color: C.coral, fontWeight: 600, marginBottom: 6 }}>{t.sub}</div>
+              <div style={{ fontSize: "clamp(10px,1vw,11px)", color: C.muted, lineHeight: 1.5, flex: 1 }}>{t.desc}</div>
+              <div style={{ marginTop: 8, background: `${C.coral}0c`, borderRadius: 6, padding: "4px 7px", fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, color: C.coral, textAlign: "center" }}>Conv: {t.conv}</div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+      <FadeIn delay={350}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: `linear-gradient(135deg, ${C.coral}, ${C.gold})`, borderRadius: 12, padding: "14px 22px", textAlign: "center" }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1 }}>PDF Guide</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px,3vw,26px)", fontWeight: 700, color: C.white }}>3–5%</div>
+          </div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: C.coral }}>→</div>
+          <div style={{ background: C.midnight, borderRadius: 12, padding: "14px 22px", textAlign: "center" }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1 }}>Hold System</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px,3vw,26px)", fontWeight: 700, color: C.seafoam }}>25–30%</div>
+          </div>
+          <div style={{ fontSize: "clamp(11px,1.2vw,13px)", fontWeight: 700, color: C.midnight }}>=&nbsp;5–10× more effective</div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   11b. CROSS-PLATFORM FLYWHEEL
+   ═══════════════════════════════════════════════════ */
+function Flywheel() {
+  const [activeCh, setActiveCh] = useState(null);
+  const channels = [
+    { id: "tiktok", label: "TikTok", role: "Discovery & Virality", icon: "♪", angle: 225, desc: "Spark awareness with short-form video. 45-min ferry hook, island lifestyle, guest UGC. Feeds branded search.", color: "#D4A853" },
+    { id: "google", label: "Google", role: "Intent & Capture", icon: "⌕", angle: 315, desc: "Capture high-intent searches. Brand protection, destination queries, segment keywords. Highest conversion rate.", color: "#8DB4D8" },
+    { id: "email", label: "Email / CRM", role: "Relationship & Revenue", icon: "✉", angle: 45, desc: "Nurture subscribers toward booking. Welcome sequences, seasonal offers, hold reminders, re-engagement.", color: "#C4917B" },
+    { id: "meta", label: "Meta", role: "Retargeting & Nurture", icon: "◎", angle: 135, desc: "Retarget site visitors + capture emails via lead forms. Lookalike audiences from subscriber list.", color: "#B8A9D4" },
+  ];
+  const STAGES = [
+    { label: "Discover", sub: "TikTok · Social · Google", desc: "Ads, search, social content spark awareness", color: "#D4A853" },
+    { label: "Explore", sub: "Site / Infohub", desc: "Browse destination content, galleries, experiences", color: "#7CBDAB" },
+    { label: "Engage", sub: "Signup ⭐", desc: "Email capture — lead magnets, exclusive access", color: "#E8B931" },
+    { label: "Decide", sub: "Nurture", desc: "Email sequences & retargeting build intent", color: "#C4917B" },
+    { label: "Book", sub: "Riahi · Westin → Marriott", desc: "Qualified referral to booking platforms", color: "#8DB4D8" },
+    { label: "Advocate", sub: "Share · Review · Return", desc: "Post-stay guests become ambassadors", color: "#B8A9D4" },
+  ];
+
+  return (
+    <Section id="flywheel" bg="#FAF6F0">
+      <FadeIn>
+        <Tag>Media Ecosystem</Tag>
+        <Title>The Cross-Platform Flywheel</Title>
+        <Sub>Every paid channel feeds the site. The site captures emails. Email compounds into bookings.</Sub>
+      </FadeIn>
+      <div style={{ display: "flex", gap: "clamp(24px,4vw,48px)", flexWrap: "wrap", alignItems: "flex-start" }}>
+        {/* Left: flywheel diagram */}
+        <FadeIn delay={100}>
+          <div style={{ flex: "1 1 340px", minWidth: 280, maxWidth: 520 }}>
+            <svg viewBox="0 0 480 480" style={{ width: "100%" }}>
+              <defs>
+                <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#4A3B20" /><stop offset="100%" stopColor="#3C2A0A" /></radialGradient>
+                <filter id="hubShadow"><feGaussianBlur stdDeviation="6" result="b" /><feFlood floodColor="rgba(60,42,10,0.2)" /><feComposite in2="b" operator="in" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+              </defs>
+              {/* Orbit ring */}
+              <circle cx="240" cy="240" r="155" fill="none" stroke="#B8A07040" strokeWidth="1" strokeDasharray="6 4" />
+              {/* Animated orbit dot */}
+              <circle r="3" fill="#D4A853" opacity="0.5">
+                <animateMotion dur="8s" repeatCount="indefinite" path="M 240,85 A 155,155 0 1,1 239.9,85" />
+              </circle>
+              {/* Connection lines from channels to hub */}
+              {channels.map((ch, i) => {
+                const rad = (ch.angle * Math.PI) / 180;
+                const cx = 240 + Math.cos(rad) * 155;
+                const cy = 240 + Math.sin(rad) * 155;
+                return (
+                  <line key={ch.id} x1="240" y1="240" x2={cx} y2={cy}
+                    stroke={activeCh === ch.id ? ch.color : "#B8A07030"}
+                    strokeWidth={activeCh === ch.id ? "2" : "1"}
+                    strokeDasharray="4 3" style={{ transition: "all 0.3s" }} />
+                );
+              })}
+              {/* Hub */}
+              <circle cx="240" cy="240" r="68" fill="url(#hubGrad)" filter="url(#hubShadow)" />
+              <circle cx="240" cy="240" r="68" fill="none" stroke="#B8A07050" strokeWidth="1.5" />
+              <text x="240" y="225" textAnchor="middle" fontSize="11" fontWeight="600" letterSpacing="2" fill="#D4A853" style={{ textTransform: "uppercase" }}>THE SITE</text>
+              <circle cx="240" cy="244" r="12" fill="none" stroke="#D4A85380" strokeWidth="1.2" />
+              <line x1="240" y1="238" x2="240" y2="250" stroke="#D4A85380" strokeWidth="1" />
+              <line x1="234" y1="244" x2="246" y2="244" stroke="#D4A85380" strokeWidth="1" />
+              <text x="240" y="275" textAnchor="middle" fontSize="9" fill="#B8A070" style={{ fontStyle: "italic" }}>The hub to collect</text>
+              <text x="240" y="287" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#D4A853">email: our primary asset.</text>
+              {/* Channel nodes */}
+              {channels.map((ch) => {
+                const rad = (ch.angle * Math.PI) / 180;
+                const cx = 240 + Math.cos(rad) * 155;
+                const cy = 240 + Math.sin(rad) * 155;
+                const isActive = activeCh === ch.id;
+                const labelX = cx + Math.cos(rad) * 58;
+                const labelY = cy + Math.sin(rad) * 38;
+                const roleY = cy + Math.sin(rad) * (ch.angle > 180 ? -52 : 52);
+                const roleX = cx + Math.cos(rad) * (ch.angle > 90 && ch.angle < 270 ? -10 : 10);
+                return (
+                  <g key={ch.id} style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setActiveCh(ch.id)} onMouseLeave={() => setActiveCh(null)}>
+                    <circle cx={cx} cy={cy} r={isActive ? 40 : 34} fill={isActive ? "#FAF0E0" : "#F5EDE0"} stroke={isActive ? ch.color : "#C8B89060"} strokeWidth={isActive ? 2 : 1.2} style={{ transition: "all 0.25s" }} />
+                    <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fontSize="20" fill={isActive ? ch.color : "#6B5D4F"} style={{ transition: "fill 0.2s" }}>{ch.icon}</text>
+                    <text x={cx} y={cy + 24} textAnchor="middle" fontSize="12" fontWeight="600" fill={isActive ? ch.color : "#4A3B20"} style={{ transition: "fill 0.2s" }}>{ch.label}</text>
+                    {/* Role label */}
+                    <text x={ch.angle === 225 ? cx - 20 : ch.angle === 315 ? cx + 20 : ch.angle === 135 ? cx - 20 : cx + 20}
+                      y={ch.angle === 225 || ch.angle === 315 ? cy - 46 : cy + 50}
+                      textAnchor={ch.angle === 225 || ch.angle === 135 ? "end" : "start"}
+                      fontSize="10" fontStyle="italic" fill={isActive ? ch.color : "#9A8B7A"} style={{ transition: "fill 0.2s" }}>{ch.role}</text>
+                  </g>
+                );
+              })}
+            </svg>
+            {/* Channel detail on hover */}
+            <div style={{ minHeight: 40, padding: "8px 14px", background: activeCh ? "rgba(60,42,10,0.04)" : "transparent", borderRadius: 8, border: activeCh ? "1px solid rgba(60,42,10,0.08)" : "1px solid transparent", transition: "all 0.25s", marginTop: -8 }}>
+              {activeCh ? (
+                <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#4A3B20", lineHeight: 1.55 }}>
+                  <strong style={{ color: channels.find(c=>c.id===activeCh)?.color }}>{channels.find(c=>c.id===activeCh)?.label}:</strong>{" "}
+                  {channels.find(c=>c.id===activeCh)?.desc}
+                </div>
+              ) : (
+                <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", textAlign: "center", fontStyle: "italic" }}>← Click any channel to explore</div>
+              )}
+            </div>
+            {/* Bottom quote */}
+            <div style={{ marginTop: 14, borderTop: "1px solid rgba(60,42,10,0.08)", paddingTop: 10 }}>
+              <div style={{ fontSize: "clamp(12px,1.2vw,14px)", color: "#4A3B20", fontStyle: "italic", fontFamily: "'Playfair Display', serif" }}>"Exclusions are as important as targeting."</div>
+              <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", marginTop: 2, fontStyle: "italic" }}>Don't show signup ads to people who've already signed up.</div>
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* Right: user journey stages */}
+        <FadeIn delay={200}>
+          <div style={{ flex: "1 1 280px", minWidth: 240, maxWidth: 420 }}>
+            <div style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, letterSpacing: 2, color: "#9A8B7A", textTransform: "uppercase", marginBottom: 4 }}>Nirup Island</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px,2.8vw,28px)", fontWeight: 700, color: "#2C1810", marginBottom: 3 }}>User Journey</div>
+            <div style={{ fontSize: "clamp(11px,1.2vw,14px)", color: "#B8860B", fontStyle: "italic", marginBottom: 18 }}>The 'Dream to Share' Loop</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {STAGES.map((s, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0, marginTop: 4 }} />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "clamp(13px,1.4vw,16px)", fontWeight: 700, color: "#2C1810" }}>{s.label}</span>
+                      <span style={{ fontSize: "clamp(10px,1vw,12px)", color: "#9A8B7A", fontStyle: "italic" }}>{s.sub}</span>
+                    </div>
+                    <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#7A6B5D", lineHeight: 1.45, marginTop: 1 }}>{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 18, padding: "10px 14px", background: "rgba(184,134,11,0.06)", borderRadius: 8, border: "1px solid rgba(184,134,11,0.12)" }}>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: "#4A3B20", lineHeight: 1.55 }}>
+                Our ads influence <strong style={{ color: "#B8860B" }}>Discover → Decide</strong><br />
+                We track success at <strong style={{ color: "#B8860B" }}>Explore → Engage</strong><br />
+                <span style={{ color: "#9A8B7A", fontStyle: "italic" }}>The booking happens differently.</span>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   12. PAID MEDIA
+   ═══════════════════════════════════════════════════ */
+function PaidMedia() {
+  return (
+    <Section id="paid" bg={C.white}>
+      <FadeIn><Tag>Paid Media Plan</Tag><Title>20 Campaigns Across 3 Platforms</Title><Sub>TikTok builds awareness → Google captures search → Meta retargets & captures emails → Email nurtures → Booking</Sub></FadeIn>
+      <FadeIn delay={80}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 12, marginBottom: 28 }}>
+          {[
+            { name: "Google Ads", role: "Capture Intent", color: "#4285F4", n: 11, pct: "40–50%", items: ["Brand Protection (IS 95%+)", "Destination Intent", "Segment Search", "Competitor Conquest"] },
+            { name: "Meta Ads", role: "Retarget + Emails", color: "#1877F2", n: 5, pct: "30%", items: ["Awareness Reels", "Content Engagement", "Email Capture ⭐", "Booking Intent"] },
+            { name: "TikTok Ads", role: "Discovery", color: "#010101", n: 4, pct: "10–20%", items: ["Proximity Hook", "Discovery Narrative", "Lead Gen Forms", "Guest UGC Spark"] },
+          ].map((p, i) => (
+            <div key={i} style={{ background: p.color, borderRadius: 14, padding: "clamp(16px,2.5vw,26px)", color: C.white }}>
+              <div style={{ fontSize: "clamp(15px,1.8vw,19px)", fontWeight: 700, marginBottom: 2 }}>{p.name}</div>
+              <div style={{ fontSize: "clamp(9px,0.9vw,11px)", opacity: 0.7, marginBottom: 10 }}>{p.role} · {p.n} campaigns · {p.pct}</div>
+              {p.items.map(it => <div key={it} style={{ fontSize: "clamp(10px,1vw,12px)", padding: "3px 0", opacity: 0.8, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>{it}</div>)}
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+      <FadeIn delay={200}>
+        <div style={{ background: C.pearl, borderRadius: 12, padding: "clamp(14px,2vw,22px)", overflowX: "auto" }}>
+          <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: C.midnight, marginBottom: 10 }}>Platform KPI Targets</div>
+          <table style={{ width: "100%", minWidth: 420, borderCollapse: "collapse", fontSize: "clamp(10px,1vw,12px)" }}>
+            <thead><tr style={{ borderBottom: `2px solid ${C.teal}25` }}>{["Platform","Primary KPI","Target"].map(h => <th key={h} style={{ padding: "5px 8px", textAlign: "left", color: C.teal, fontWeight: 600, fontSize: "clamp(9px,0.9vw,10px)" }}>{h}</th>)}</tr></thead>
+            <tbody>
+              {[["Google (Brand)","CPA per signup","<SGD 30"],["Google (Non-Brand)","CPA per referral","<SGD 25"],["Meta (Instant)","Cost per signup","<SGD 20"],["Meta (Website)","Cost per signup","<SGD 35"],["TikTok","CPM + brand lift","<SGD 10 CPM"]].map((r,i) => (
+                <tr key={i} style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>{r.map((c,ci) => <td key={ci} style={{ padding: "5px 8px", color: ci===2 ? C.teal : C.darkText, fontWeight: ci===2 ? 700 : 400 }}>{c}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   13. EMAIL ENGINE (from value-exchange.jsx)
+   ═══════════════════════════════════════════════════ */
+function EmailEngine() {
+  const SEGS = [
+    { aud: "SG Weekenders", color: "#8B6914", magnet: "Insider's Guide + Weekend Planner", detail: "Ferry schedules, best-time grid, 2-day itineraries" },
+    { aud: "Families", color: "#A67C1A", magnet: "Family Survival Pack", detail: "Kid-friendly itinerary, packing list, dining guide" },
+    { aud: "Wellness", color: "#5E7A42", magnet: "2-Day Reset Plan", detail: "Spa + mindfulness + dining sequence" },
+    { aud: "Villa Seekers", color: "#7A5420", magnet: "Villa Selection Guide", detail: "Comparison, floor plans, group pricing" },
+    { aud: "Corporate", color: "#3D6080", magnet: "Corporate Retreat Planner", detail: "Capacity, AV, team activities, sample agenda" },
+    { aud: "Weddings", color: "#9E5068", magnet: "Wedding Venue Portfolio", detail: "Gallery, packages, sample timeline" },
+    { aud: "Marina/Yacht", color: "#2D6370", magnet: "Marina & Island Guide", detail: "Berthing specs, CIQ, island experiences" },
+    { aud: "Day Trippers", color: "#B0722A", magnet: "Insider's Guide (Core)", detail: "Ferry, experiences, dining — universal" },
+  ];
+
+  return (
+    <Section id="email" bg={`linear-gradient(160deg, ${C.midnight}, ${C.deep})`}>
+      <FadeIn><Tag>Email & Content Engine</Tag><Title light>The Single Highest-Leverage Change</Title></FadeIn>
+      <FadeIn delay={80}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 230px), 1fr))", gap: 14, marginBottom: 28 }}>
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 14, padding: "clamp(16px,2.5vw,26px)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
+            <div style={{ fontSize: "clamp(9px,0.9vw,10px)", color: C.coral, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Current</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(13px,1.4vw,17px)", color: "rgba(255,255,255,0.4)", fontStyle: "italic", marginBottom: 5 }}>"Subscribe for updates"</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px,4.5vw,38px)", fontWeight: 700, color: C.coral }}>0.3%</div>
+            <div style={{ fontSize: "clamp(10px,1vw,11px)", color: "rgba(255,255,255,0.3)" }}>No value exchange</div>
+          </div>
+          <div style={{ background: `${C.teal}12`, borderRadius: 14, padding: "clamp(16px,2.5vw,26px)", border: `1px solid ${C.teal}28`, textAlign: "center" }}>
+            <div style={{ fontSize: "clamp(9px,0.9vw,10px)", color: C.seafoam, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Future</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(13px,1.4vw,17px)", color: C.white, marginBottom: 5 }}>"Get the Insider's Guide"</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px,4.5vw,38px)", fontWeight: 700, color: C.seafoam }}>&gt;2.0%</div>
+            <div style={{ fontSize: "clamp(10px,1vw,11px)", color: "rgba(255,255,255,0.5)" }}>Ferry · Best Time · Itinerary · Dining</div>
+          </div>
+        </div>
+      </FadeIn>
+      <FadeIn delay={160}>
+        <div style={{ padding: "8px 14px", background: `${C.gold}06`, borderLeft: `2px solid ${C.gold}`, borderRadius: "0 8px 8px 0", marginBottom: 14, display: "flex", gap: 7, alignItems: "center" }}>
+          <Sparkles size={13} color={C.gold} />
+          <span style={{ fontSize: "clamp(10px,1.1vw,13px)", color: "rgba(255,255,255,0.55)" }}>The Insider's Guide is the <strong style={{ color: C.gold }}>universal lead magnet</strong>. Segment-specific variants deepen the offer:</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 250px), 1fr))", gap: 7 }}>
+          {SEGS.map((s, i) => (
+            <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", padding: "7px 10px", background: "rgba(255,255,255,0.02)", borderRadius: 7, border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ width: 26, height: 26, borderRadius: 6, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 700, color: s.color }}>{s.aud.charAt(0)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, color: s.color, letterSpacing: 0.4, textTransform: "uppercase" }}>{s.aud}</div>
+                <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 600, color: C.white, lineHeight: 1.2 }}>{s.magnet}</div>
+                <div style={{ fontSize: "clamp(9px,0.9vw,11px)", color: "rgba(255,255,255,0.3)", lineHeight: 1.2, marginTop: 1 }}>{s.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+      <FadeIn delay={280}>
+        <div style={{ marginTop: 28, fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.white, marginBottom: 10 }}>7 Days to Action</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 8 }}>
+          {[
+            { day: "Day 0", title: "Deliver Value", desc: "Guide + ferry + Getting Here", color: C.teal },
+            { day: "Day 2", title: "Plan the Weekend", desc: "Weekend plan + dining + segments", color: C.seafoam },
+            { day: "Day 5", title: "Social Proof", desc: "UGC + what guests loved + FAQs", color: C.gold },
+            { day: "Day 7", title: "Light Offer", desc: "Seasonal hook + villa hold reminder", color: C.coral },
+          ].map((e, i) => (
+            <div key={i} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "clamp(10px,1.5vw,16px)", borderTop: `3px solid ${e.color}` }}>
+              <div style={{ fontSize: "clamp(9px,0.9vw,10px)", fontWeight: 700, color: e.color, letterSpacing: 1, marginBottom: 3 }}>{e.day}</div>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: C.white, marginBottom: 2 }}>{e.title}</div>
+              <div style={{ fontSize: "clamp(9px,0.9vw,11px)", color: "rgba(255,255,255,0.4)", lineHeight: 1.4 }}>{e.desc}</div>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   14. ROADMAP
+   ═══════════════════════════════════════════════════ */
+function Roadmap() {
+  const months = [
+    { num: 1, title: "Foundation", color: C.teal, items: ["Fix GTM + Install Pixels", "Create Lead Magnets", "Build Riahi Hold System", "Setup GA4 Dashboards"], note: "No ad spend until tracking works" },
+    { num: 2, title: "Test & Launch", color: C.seafoam, items: ["Google Brand + Destination Ads", "Meta Awareness + Email Capture", "Group Quote Tool Live", "Welcome Email Sequence"], note: "Highest-intent channels first" },
+    { num: 3, title: "Scale", color: C.coral, items: ["Retargeting Activation", "TikTok Spark Ads Live", "Perk + Referral Launch", "Mid-point Review (Wk 8)"], note: "First 3× validation checkpoint" },
+  ];
+  return (
+    <Section id="roadmap" bg={C.pearl}>
+      <FadeIn><Tag>Execution</Tag><Title>90-Day Roadmap</Title><Sub>Month 1 is pure foundation. No ad spend until tracking works and the lead magnet exists.</Sub></FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: 14 }}>
+        {months.map((m, i) => (
+          <FadeIn key={i} delay={i * 100}>
+            <div style={{ background: C.white, borderRadius: 14, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: m.color, padding: "14px 18px" }}>
+                <div style={{ fontSize: "clamp(9px,0.9vw,10px)", color: "rgba(255,255,255,0.7)", letterSpacing: 1.5, textTransform: "uppercase" }}>Month {m.num}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(16px,2.2vw,22px)", fontWeight: 700, color: C.white }}>{m.title}</div>
+              </div>
+              <div style={{ padding: "clamp(12px,1.8vw,18px)", flex: 1 }}>
+                {m.items.map((it, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 0", borderBottom: "1px solid rgba(0,0,0,0.04)", fontSize: "clamp(10px,1.1vw,12px)", color: C.midnight }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: `${m.color}12`, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{j + 1}</div>
+                    {it}
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: "8px 18px", background: C.pearl, fontSize: "clamp(9px,0.9vw,10px)", color: C.muted }}>💡 {m.note}</div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   15. BUDGET (from budget-framework.jsx)
+   ═══════════════════════════════════════════════════ */
+function Budget() {
+  const tiers = [
+    { label: "Validation", monthly: "SGD 8–12K", annual: "SGD 96–144K/yr", desc: "Prove the model. Brand protection + basic email capture + retargeting.", signups: "80–120", referrals: "150–200", channels: "Google Brand + Meta Email + Retargeting", timeline: "3× by Month 5–6", rec: false },
+    { label: "Launch", monthly: "SGD 15–25K", annual: "SGD 180–300K/yr", desc: "Full 3-platform strategy. 11 Google + 5 Meta + 4 TikTok campaigns + creator program.", signups: "150–300", referrals: "300–450", channels: "All 3 platforms (20 campaigns) + creator", timeline: "3× by Month 3", rec: true },
+    { label: "Scale", monthly: "SGD 25–40K", annual: "SGD 300–480K/yr", desc: "All channels at full deployment. Seasonal bursts + geo expansion (KL, Jakarta, HK).", signups: "400–600", referrals: "500–800", channels: "Full deployment + seasonal + geo expansion", timeline: "3× by Month 2", rec: false },
+  ];
+  const [hTier, setHTier] = useState(null);
+  return (
+    <Section id="budget" bg={C.sand}>
+      <FadeIn><Tag>Investment</Tag><Title>Budget Framework</Title><Sub>Three tiers with expected outcomes — signups, referral clicks, and active channels per month.</Sub></FadeIn>
+      <FadeIn delay={60}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 10, marginBottom: 28 }}>
+          {[{ t: "Tracking & Analytics", c: "4–6K", w: "Wk 1–3" },{ t: "Lead Magnet + Signup", c: "3–5K", w: "Wk 1–4" },{ t: "Riahi Booking Tools", c: "3.5–7K", w: "Wk 3–8" },{ t: "Content & Landing Pages", c: "2.5–4K", w: "Wk 4–8" },{ t: "Email Sequences", c: "2–3.5K", w: "Wk 4–8" },{ t: "Paid Media Setup", c: "3–5K", w: "Wk 2–6" }].map((w, i) => (
+            <div key={i} style={{ background: C.white, borderRadius: 10, padding: "clamp(12px,1.5vw,18px)", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(0,0,0,0.04)", gap: 8 }}>
+              <div><div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: C.midnight }}>{w.t}</div><div style={{ fontSize: "clamp(9px,0.9vw,10px)", color: C.muted, marginTop: 1 }}>{w.w}</div></div>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: C.teal, whiteSpace: "nowrap" }}>SGD {w.c}</div>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+      <FadeIn delay={200}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 16, marginBottom: 24 }}>
+          {tiers.map((t, i) => (
+            <div key={i} onMouseEnter={() => setHTier(i)} onMouseLeave={() => setHTier(null)}
+              style={{ background: t.rec ? "linear-gradient(165deg, #1B4332, #2D6A4F)" : hTier === i ? "#FDFBF7" : "#F8F4ED", borderRadius: 16, padding: "clamp(22px,3vw,32px) clamp(18px,2.5vw,28px)", position: "relative", border: t.rec ? "none" : "1px solid rgba(184,134,11,0.1)", transition: "all 0.35s", transform: hTier === i ? "translateY(-3px)" : "none", boxShadow: t.rec ? "0 16px 48px rgba(27,67,50,0.2)" : hTier === i ? "0 12px 36px rgba(44,24,16,0.1)" : "none" }}>
+              {t.rec && <div style={{ position: "absolute", top: 14, right: 14, background: "rgba(255,255,255,0.16)", borderRadius: 20, padding: "4px 12px", fontSize: "clamp(8px,0.8vw,10px)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "#A7D9C1" }}>★ Recommended</div>}
+              <div style={{ fontSize: "clamp(10px,1vw,12px)", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: t.rec ? "rgba(255,255,255,0.5)" : "#9A8B7A", marginBottom: 6 }}>{t.label}</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px,3.5vw,36px)", fontWeight: 700, color: t.rec ? C.white : "#2C1810", lineHeight: 1.15, marginBottom: 2 }}>{t.monthly}</div>
+              <div style={{ fontSize: "clamp(10px,1vw,12px)", color: t.rec ? "rgba(255,255,255,0.45)" : "#9A8B7A", marginBottom: 14 }}>{t.annual}</div>
+              <div style={{ fontSize: "clamp(11px,1.1vw,13px)", color: t.rec ? "rgba(255,255,255,0.7)" : "#6B5D4F", lineHeight: 1.55, marginBottom: 18 }}>{t.desc}</div>
+              <div style={{ height: 1, background: t.rec ? "rgba(255,255,255,0.12)" : "rgba(184,134,11,0.1)", marginBottom: 16 }} />
+              {[["✉", "Signups", t.signups],["↗", "Referrals", t.referrals],["◎", "Channels", t.channels]].map(([ic, lbl, val]) => (
+                <div key={lbl} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: t.rec ? "rgba(255,255,255,0.1)" : "rgba(184,134,11,0.07)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{ic}</div>
+                    <span style={{ fontSize: "clamp(10px,1vw,12px)", color: t.rec ? "rgba(255,255,255,0.6)" : "#7A6B5D" }}>{lbl}</span>
+                  </div>
+                  <span style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 700, color: t.rec ? C.white : "#2C1810", textAlign: "right", maxWidth: 150 }}>{val}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 14, padding: "8px 14px", borderRadius: 8, background: t.rec ? "rgba(255,255,255,0.08)" : "rgba(184,134,11,0.05)", border: t.rec ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(184,134,11,0.08)", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13 }}>⏱</span>
+                <span style={{ fontSize: "clamp(10px,1.1vw,12px)", fontWeight: 600, color: t.rec ? "#A7D9C1" : "#B8860B" }}>{t.timeline}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+      <FadeIn delay={350}>
+        <div style={{ background: "linear-gradient(135deg, rgba(27,67,50,0.05), rgba(184,134,11,0.05))", border: "1px solid rgba(184,134,11,0.12)", borderRadius: 12, padding: "16px 22px", display: "flex", gap: 12, alignItems: "start", marginBottom: 16 }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>⚡</span>
+          <div>
+            <div style={{ fontSize: "clamp(11px,1.1vw,13px)", fontWeight: 600, color: "#2C1810", marginBottom: 3 }}>3× at 90 days assumes Launch-tier spend.</div>
+            <div style={{ fontSize: "clamp(10px,1vw,12px)", color: "#6B5D4F", lineHeight: 1.5 }}>Validation reaches 3× by Month 5–6. The 90-day target of 150 signups/mo aligns with Launch output.</div>
+          </div>
+        </div>
+        <div style={{ fontSize: "clamp(9px,0.9vw,11px)", color: "#9A8B7A" }}>
+          Channel allocation: <strong>Google 40–50%</strong> · <strong>Meta 30%</strong> · <strong>TikTok 10–20%</strong> · <strong>Influencer 10–15%</strong><br />
+          Geo: 85% Singapore / 15% Secondary · Seasonal: +30–50% during peaks · Riahi tools: SGD 3.5–7K one-time + SGD 50–350/booking
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   16. NEXT STEPS
+   ═══════════════════════════════════════════════════ */
+function NextSteps() {
+  const steps = [
+    { n: 1, title: "Approve 90-Day Roadmap", desc: "Begin tag cleanup + dashboard setup + lead magnet creation" },
+    { n: 2, title: "Approve Riahi Booking Tactics", desc: "Hold system, group quote, perk selection, availability alerts" },
+    { n: 3, title: "Confirm Perk Budget", desc: "Yacht cruise, spa credit, photography, late checkout + SGD 200 referral" },
+    { n: 4, title: "Select Budget Tier", desc: "Validation (8–12K) / Recommended (15–25K) / Scale (25–40K)" },
+    { n: 5, title: "Approve Paid Media Module", desc: "Platform priorities, channel allocation, creative production brief" },
+  ];
+  return (
+    <Section id="next" bg={`linear-gradient(160deg, ${C.midnight}, ${C.deep})`}>
+      <FadeIn><Tag>Next Steps</Tag><Title light>5 Decisions to Make</Title><Sub light>Once approved, we begin Week 1.</Sub></FadeIn>
+      <div style={{ display: "grid", gap: 8, maxWidth: 640 }}>
+        {steps.map((s, i) => (
+          <FadeIn key={i} delay={i * 70}>
+            <div style={{ display: "flex", gap: 12, alignItems: "start", background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "clamp(12px,1.8vw,18px)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${C.teal}, ${C.seafoam})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: C.white, flexShrink: 0 }}>{s.n}</div>
+              <div><div style={{ fontSize: "clamp(12px,1.2vw,14px)", fontWeight: 700, color: C.white }}>{s.title}</div><div style={{ fontSize: "clamp(10px,1vw,12px)", color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{s.desc}</div></div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+      <FadeIn delay={400}>
+        <div style={{ marginTop: 36, textAlign: "center" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(16px,2.5vw,26px)", fontWeight: 700, color: C.white, marginBottom: 6 }}>Every dollar flows toward one asset: the email list.</div>
+          <div style={{ fontSize: "clamp(12px,1.3vw,15px)", color: C.seafoam }}>The list compounds. OTA dependency decreases. Direct relationships grow.</div>
+          <div style={{ marginTop: 24, fontSize: "clamp(9px,0.9vw,11px)", color: "rgba(255,255,255,0.2)" }}>The Westin Nirup Island Resort & Spa · Riahi Residences · nirupisland.com</div>
+        </div>
+      </FadeIn>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN APP
+   ═══════════════════════════════════════════════════ */
+function NirupStory() {
+  const [active, setActive] = useState("hero");
+
+  useEffect(() => {
+    const ids = NAV.map(i => i.id);
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting && e.intersectionRatio > 0.12) setActive(e.target.id); });
+    }, { threshold: 0.12, rootMargin: "-48px 0px -25% 0px" });
+    ids.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div style={{ background: C.midnight, minHeight: "100vh" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 48px; }
+        body { font-family: 'DM Sans', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: ${C.midnight}; }
+        ::-webkit-scrollbar-thumb { background: ${C.teal}40; border-radius: 3px; }
+        ::selection { background: ${C.teal}35; }
+        .nav-scroll::-webkit-scrollbar { display: none; }
+        .nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        table { border-spacing: 0; }
+        @media (max-width: 640px) {
+          section { padding-left: 12px !important; padding-right: 12px !important; }
+        }
+      `}</style>
+      <Nav active={active} />
+      <Hero />
+      <ExecSummary />
+      <WhyNow />
+      <BusinessModel />
+      <IslandJourney />
+      <MicroJourneys />
+      <GrowthTargets />
+      <Audiences />
+      <AudienceTiming />
+      <CampaignCalendar />
+      <Seasonality />
+      <WestinStrategy />
+      <RiahiStrategy />
+      <Flywheel />
+      <PaidMedia />
+      <EmailEngine />
+      <Roadmap />
+      <Budget />
+      <NextSteps />
+    </div>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<NirupStory />);
+  </script>
+</body>
+</html>
